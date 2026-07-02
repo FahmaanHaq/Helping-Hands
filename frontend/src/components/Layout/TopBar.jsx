@@ -1,5 +1,6 @@
 import React from 'react';
 import { Menu } from 'lucide-react';
+import NotificationBell from '../NotificationBell.jsx';
 
 export default function TopBar({ onMenuClick }) {
   return (
@@ -8,6 +9,8 @@ export default function TopBar({ onMenuClick }) {
         <Menu size={22} />
       </button>
       <span className="topbar-brand-mobile">Helping Hands</span>
+      <div className="topbar-spacer" />
+      <NotificationBell />
     </header>
   );
 }

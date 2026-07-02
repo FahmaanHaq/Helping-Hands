@@ -323,7 +323,57 @@ its full lifecycle.
   Admins), `/requests/new` (create), `/requests/:id` (detail, status
   actions, image gallery, history timeline).
 
-## Formal project documentation
+## Notification System
+
+The last module from the original spec — every module now fires a
+notification through two channels: an in-app record (bell icon in the top
+bar, dropdown list, unread badge) and an email (reusing the same
+`EmailService`/SMTP infrastructure as verification and password reset,
+and inheriting the same `@Async` fix that stops a slow mail server from
+ever blocking a request).
+
+**Events that notify:**
+- Children's Home / Service Provider verification approved or rejected
+- Request pledged (→ notifies the Home), accepted (→ notifies the
+  pledged Donor/Provider), delivered (→ notifies the Home), completed
+  (→ notifies the pledged user), cancelled (→ notifies both sides)
+- A rating is received (→ notifies the rated Donor/Provider)
+- Content flagged by an admin (→ notifies the owning Home)
+- Account suspended or reinstated
+
+**Design notes:**
+- `NotificationService.notify(...)` is the single entry point every other
+  service calls — the "who gets told what" logic lives in the caller
+  (e.g. `RequestService.notifyOnStatusChange`), not duplicated per event.
+- No preference system yet — every event notifies via both channels for
+  every user. A "don't email me for every pledge" opt-out is a reasonable
+  next step, deliberately out of scope here.
+- No real-time push (WebSockets/SSE) — the bell polls
+  `GET /api/v1/notifications/unread-count` every 30 seconds. Honest
+  trade-off for this scale; a websocket connection would be the natural
+  upgrade if instant delivery ever matters.
+- Suspended users still get their `ACCOUNT_SUSPENDED` notification stored
+  in-app (visible once reinstated) — but since they can't log in while
+  suspended, the email is the channel that actually reaches them.
+
+## Email hang fix (Mail sending)
+
+Found via a "Sending..." button that never resolved: there were no SMTP
+timeouts configured anywhere, so a slow/unreachable mail server blocked
+the *entire HTTP request* — potentially for minutes. Fixed two ways:
+explicit 10-second SMTP timeouts (`application.yml`), and making every
+`SmtpEmailService` method `@Async` so the calling request returns as soon
+as the token/notification is persisted, completely decoupled from SMTP
+latency. A broken mail configuration can now only ever show up in server
+logs, never as a hung frontend request.
+
+## SPA fallback restored
+
+`frontend/vercel.json` (the rewrite that tells Vercel to serve `index.html`
+for any client-side route) had gone missing from the project, causing
+*every* direct page load or refresh to 404 unpredictably depending on
+which static asset Vercel happened to have cached. Restored and verified
+present in the packaged zip.
 
 `docs/PROJECT_DOCUMENTATION.md` covers the full 18-section documentation set
 originally specified (architecture, database design, API docs, deployment

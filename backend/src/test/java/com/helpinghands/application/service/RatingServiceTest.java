@@ -18,6 +18,7 @@ class RatingServiceTest {
     @Mock private RatingRepository ratingRepository;
     @Mock private RequestRepository requestRepository;
     @Mock private CurrentUserResolver currentUserResolver;
+    @Mock private NotificationService notificationService;
 
     private RatingService ratingService;
 
@@ -25,7 +26,7 @@ class RatingServiceTest {
 
     @BeforeEach
     void setUp() {
-        ratingService = new RatingService(ratingRepository, requestRepository, currentUserResolver);
+        ratingService = new RatingService(ratingRepository, requestRepository, currentUserResolver, notificationService);
     }
 
     @Test

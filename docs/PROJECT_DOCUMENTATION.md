@@ -29,9 +29,8 @@ reputation → admin oversight → reporting → email flows → content moderat
 → testing and documentation. Every module beyond authentication builds on
 the ones before it; none were built in isolation from the others.
 
-**Current status:** every functional module in the original spec is
-implemented except a notification system (status changes are visible on
-refresh but nothing pushes a notification yet).
+**Current status:** every module from the original spec is implemented,
+including the notification system (see Module 13 below).
 
 ---
 
@@ -89,6 +88,7 @@ Eight migrations, applied in order, build the schema:
 | `006_schema_reputation_moderation.sql` | `ratings`, `audit_log`; suspension columns on `users` |
 | `007_schema_tokens.sql` | `verification_tokens` (email verification + password reset) |
 | `008_schema_moderation.sql` | Flagging columns on `requests` |
+| `009_schema_notifications.sql` | `notifications` |
 
 **Platform-wide rules enforced on every business table** (per the original
 spec): `is_active BIT DEFAULT 1`, `created_by`, `created_date`,
@@ -205,6 +205,7 @@ Endpoint groups (see Swagger for full detail on each):
 | `/api/v1/admin/reports` | Summary stats, CSV/PDF export |
 | `/api/v1/admin/audit-log` | Read-only action history |
 | `/api/v1/admin/dashboard` | Verification stat aggregates |
+| `/api/v1/notifications` | List, unread count, mark read (own notifications only) |
 
 ---
 
@@ -288,6 +289,12 @@ Endpoint groups (see Swagger for full detail on each):
 12. **Testing** — unit tests covering the highest-risk logic (request
     transitions, reputation restriction, token handling) plus a small
     frontend test suite (see Section 16 for tooling).
+13. **Notifications** — in-app (bell + dropdown, polled every 30s) and
+    email, firing on verification decisions, every request lifecycle
+    transition, ratings received, content flagged, and account
+    suspension/reinstatement. One entry point (`NotificationService.notify`)
+    called from every other service that has something worth telling a
+    user about.
 
 ---
 

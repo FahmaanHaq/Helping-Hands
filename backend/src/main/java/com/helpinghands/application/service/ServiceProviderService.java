@@ -4,6 +4,7 @@ import com.helpinghands.api.exception.ApiException;
 import com.helpinghands.application.dto.serviceprovider.ServiceProviderRegistrationRequest;
 import com.helpinghands.application.dto.serviceprovider.ServiceProviderResponse;
 import com.helpinghands.application.dto.verification.VerificationDecisionRequest;
+import com.helpinghands.domain.entity.NotificationType;
 import com.helpinghands.domain.entity.ServiceMode;
 import com.helpinghands.domain.entity.ServiceProvider;
 import com.helpinghands.domain.entity.User;
@@ -26,6 +27,7 @@ public class ServiceProviderService {
     private final ServiceProviderRepository serviceProviderRepository;
     private final CurrentUserResolver currentUserResolver;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     @Transactional
     public ServiceProviderResponse register(ServiceProviderRegistrationRequest request) {
@@ -104,6 +106,13 @@ public class ServiceProviderService {
         auditLogService.record(
                 "VERIFICATION_" + decision.decision(), "SERVICE_PROVIDER", provider.getId(),
                 decision.decision() == VerificationStatus.REJECTED ? decision.rejectionReason() : null);
+
+        NotificationType notificationType = decision.decision() == VerificationStatus.APPROVED
+                ? NotificationType.VERIFICATION_APPROVED : NotificationType.VERIFICATION_REJECTED;
+        String message = decision.decision() == VerificationStatus.APPROVED
+                ? "Your Service Provider profile has been approved. You can now pledge to requests."
+                : "Your Service Provider registration was rejected: " + decision.rejectionReason();
+        notificationService.notify(provider.getUser(), notificationType, "Verification Decision", message, "/service-provider");
 
         return toResponse(saved);
     }

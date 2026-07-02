@@ -30,6 +30,7 @@ public class RequestService {
     private final CurrentUserResolver currentUserResolver;
     private final RatingService ratingService;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     @Transactional
     public RequestResponse create(CreateRequestRequest req) {
@@ -176,8 +177,41 @@ public class RequestService {
         request.setStatus(to);
         Request saved = requestRepository.save(request);
         recordHistory(saved, from, to, change.remarks());
+        notifyOnStatusChange(saved, to);
 
         return toResponse(saved);
+    }
+
+    /**
+     * Who gets notified depends on which side of the transaction the status
+     * change affects. Deliberately not folded into assertAuthorizedForTransition
+     * (whose job is "who's allowed to do this") — this is "who should be told
+     * that it happened", a distinct concern with a different set of recipients.
+     */
+    private void notifyOnStatusChange(Request request, RequestStatus to) {
+        User homeUser = request.getChildrensHome().getUser();
+        User pledgedUser = request.getPledgedBy();
+        String link = "/requests/" + request.getId();
+
+        switch (to) {
+            case PLEDGED -> notificationService.notify(homeUser, NotificationType.REQUEST_PLEDGED,
+                    "Request Pledged", "\"" + request.getTitle() + "\" has been pledged by " + pledgedUser.getUsername() + ".", link);
+            case ACCEPTED -> notificationService.notify(pledgedUser, NotificationType.REQUEST_ACCEPTED,
+                    "Pledge Accepted", "Your pledge for \"" + request.getTitle() + "\" was accepted.", link);
+            case DELIVERED -> notificationService.notify(homeUser, NotificationType.REQUEST_DELIVERED,
+                    "Marked as Delivered", "\"" + request.getTitle() + "\" has been marked delivered. Please confirm completion.", link);
+            case COMPLETED -> notificationService.notify(pledgedUser, NotificationType.REQUEST_COMPLETED,
+                    "Request Completed", "\"" + request.getTitle() + "\" was confirmed complete. Thank you!", link);
+            case CANCELLED -> {
+                notificationService.notify(homeUser, NotificationType.REQUEST_CANCELLED,
+                        "Request Cancelled", "\"" + request.getTitle() + "\" was cancelled.", link);
+                if (pledgedUser != null) {
+                    notificationService.notify(pledgedUser, NotificationType.REQUEST_CANCELLED,
+                            "Request Cancelled", "\"" + request.getTitle() + "\", which you pledged to, was cancelled.", link);
+                }
+            }
+            default -> { /* CREATED has no prior recipient to notify */ }
+        }
     }
 
     /**
@@ -198,6 +232,12 @@ public class RequestService {
 
         Request saved = requestRepository.save(request);
         auditLogService.record(flagged ? "REQUEST_FLAGGED" : "REQUEST_UNFLAGGED", "REQUEST", id, reason);
+
+        if (flagged) {
+            notificationService.notify(request.getChildrensHome().getUser(), NotificationType.CONTENT_FLAGGED,
+                    "Request Flagged", "\"" + request.getTitle() + "\" was flagged by an administrator: " + reason,
+                    "/requests/" + request.getId());
+        }
 
         return toResponse(saved);
     }

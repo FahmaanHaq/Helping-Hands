@@ -180,7 +180,7 @@ body {
 }
 
 .topbar {
-  display: none;
+  display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.85rem 1.25rem;
@@ -201,11 +201,17 @@ body {
   color: var(--hh-primary);
 }
 
+.topbar-spacer {
+  flex: 1;
+}
+
 .app-shell-content {
   padding: 1.5rem 0 3rem;
 }
 
-/* Desktop: sidebar always visible, content shifted right, topbar hidden */
+/* Desktop: sidebar always visible, content shifted right. Topbar stays
+   visible everywhere now (it carries the notification bell), but its
+   hamburger + mobile brand are desktop-irrelevant. */
 @media (min-width: 900px) {
   .sidebar {
     transform: translateX(0);
@@ -214,12 +220,8 @@ body {
   }
   .sidebar-close { display: none; }
   .sidebar-backdrop { display: none; }
-  .topbar { display: none; }
-}
-
-/* Mobile: sidebar is a drawer, topbar shown to open it */
-@media (max-width: 899px) {
-  .topbar { display: flex; }
+  .topbar-menu-btn { display: none; }
+  .topbar-brand-mobile { display: none; }
 }
 
 .page {
@@ -745,6 +747,99 @@ body {
 }
 
 .verify-banner button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.notification-bell-container {
+  position: relative;
+}
+
+.notification-bell-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--hh-text);
+  display: flex;
+  position: relative;
+  padding: 0.3rem;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: var(--hh-error);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 340px;
+  max-width: 90vw;
+  background: white;
+  border: 1px solid var(--hh-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.notification-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--hh-border);
+}
+
+.notification-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.notification-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f0f1ee;
+  cursor: pointer;
+}
+
+.notification-item:hover { background: #f7f8f6; }
+
+.notification-item-unread {
+  background: #fdf7ec;
+  border-left: 3px solid var(--hh-primary);
+}
+
+.notification-item-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.2rem;
+}
+
+.notification-item-message {
+  font-size: 0.8rem;
+  color: #4c5148;
+  margin-bottom: 0.25rem;
+}
+
+.notification-item-date {
+  font-size: 0.7rem;
+  color: #9a9d95;
+}
 
 .flagged-pill {
   font-size: 0.65rem;

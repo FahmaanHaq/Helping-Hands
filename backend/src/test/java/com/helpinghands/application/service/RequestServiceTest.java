@@ -31,6 +31,7 @@ class RequestServiceTest {
     @Mock private CurrentUserResolver currentUserResolver;
     @Mock private RatingService ratingService;
     @Mock private AuditLogService auditLogService;
+    @Mock private NotificationService notificationService;
 
     private RequestService requestService;
 
@@ -44,7 +45,7 @@ class RequestServiceTest {
     void setUp() {
         requestService = new RequestService(
                 requestRepository, historyRepository, childrensHomeRepository,
-                serviceProviderRepository, currentUserResolver, ratingService, auditLogService);
+                serviceProviderRepository, currentUserResolver, ratingService, auditLogService, notificationService);
 
         homeOwnerUser = userWithRoles(1L, "home_owner", RoleName.CHILDRENS_HOME);
         donorUser = userWithRoles(2L, "donor1", RoleName.DONOR);

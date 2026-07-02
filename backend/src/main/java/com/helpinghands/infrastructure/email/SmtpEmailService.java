@@ -59,6 +59,20 @@ public class SmtpEmailService implements EmailService {
         send(toEmail, subject, body);
     }
 
+    @Override
+    @Async
+    public void sendNotificationEmail(String toEmail, String recipientName, String subject, String message, String actionLink) {
+        String linkHtml = actionLink != null
+                ? "<p><a href=\"%s\">View details</a></p>".formatted(actionLink)
+                : "";
+        String body = """
+                <p>Hi %s,</p>
+                <p>%s</p>
+                %s
+                """.formatted(recipientName, message, linkHtml);
+        send(toEmail, subject, body);
+    }
+
     private void send(String toEmail, String subject, String htmlBody) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

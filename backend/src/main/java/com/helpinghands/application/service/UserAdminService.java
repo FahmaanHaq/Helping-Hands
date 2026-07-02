@@ -3,6 +3,7 @@ package com.helpinghands.application.service;
 import com.helpinghands.api.exception.ApiException;
 import com.helpinghands.application.dto.admin.SuspendUserRequest;
 import com.helpinghands.application.dto.admin.UserSummaryResponse;
+import com.helpinghands.domain.entity.NotificationType;
 import com.helpinghands.domain.entity.RoleName;
 import com.helpinghands.domain.entity.User;
 import com.helpinghands.infrastructure.repository.UserRepository;
@@ -22,6 +23,7 @@ public class UserAdminService {
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
     private final CurrentUserResolver currentUserResolver;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public Page<UserSummaryResponse> list(String search, Pageable pageable) {
@@ -50,6 +52,8 @@ public class UserAdminService {
 
         User saved = userRepository.save(user);
         auditLogService.record("USER_SUSPENDED", "USER", saved.getId(), request.reason());
+        notificationService.notify(saved, NotificationType.ACCOUNT_SUSPENDED, "Account Suspended",
+                "Your account has been suspended: " + request.reason() + ". Contact an administrator for details.", null);
 
         return toResponse(saved);
     }
@@ -66,6 +70,8 @@ public class UserAdminService {
 
         User saved = userRepository.save(user);
         auditLogService.record("USER_REINSTATED", "USER", saved.getId(), null);
+        notificationService.notify(saved, NotificationType.ACCOUNT_REINSTATED, "Account Reinstated",
+                "Your account has been reinstated. You can log in again.", null);
 
         return toResponse(saved);
     }

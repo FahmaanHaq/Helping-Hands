@@ -5,6 +5,7 @@ import com.helpinghands.application.dto.childrenshome.ChildrensHomeRegistrationR
 import com.helpinghands.application.dto.childrenshome.ChildrensHomeResponse;
 import com.helpinghands.application.dto.verification.VerificationDecisionRequest;
 import com.helpinghands.domain.entity.ChildrensHome;
+import com.helpinghands.domain.entity.NotificationType;
 import com.helpinghands.domain.entity.User;
 import com.helpinghands.domain.entity.VerificationStatus;
 import com.helpinghands.infrastructure.repository.ChildrensHomeRepository;
@@ -25,6 +26,7 @@ public class ChildrensHomeService {
     private final ChildrensHomeRepository childrensHomeRepository;
     private final CurrentUserResolver currentUserResolver;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     @Transactional
     public ChildrensHomeResponse register(ChildrensHomeRegistrationRequest request) {
@@ -85,6 +87,13 @@ public class ChildrensHomeService {
         auditLogService.record(
                 "VERIFICATION_" + decision.decision(), "CHILDRENS_HOME", home.getId(),
                 decision.decision() == VerificationStatus.REJECTED ? decision.rejectionReason() : null);
+
+        NotificationType notificationType = decision.decision() == VerificationStatus.APPROVED
+                ? NotificationType.VERIFICATION_APPROVED : NotificationType.VERIFICATION_REJECTED;
+        String message = decision.decision() == VerificationStatus.APPROVED
+                ? "Your Children's Home \"" + home.getHomeName() + "\" has been approved. You can now post requests."
+                : "Your Children's Home \"" + home.getHomeName() + "\" registration was rejected: " + decision.rejectionReason();
+        notificationService.notify(home.getUser(), notificationType, "Verification Decision", message, "/childrens-home");
 
         return toResponse(saved);
     }

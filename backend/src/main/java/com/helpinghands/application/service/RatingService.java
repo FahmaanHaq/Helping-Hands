@@ -5,6 +5,7 @@ import com.helpinghands.application.dto.rating.RatingResponse;
 import com.helpinghands.application.dto.rating.ReputationResponse;
 import com.helpinghands.application.dto.rating.SubmitRatingRequest;
 import com.helpinghands.domain.entity.Rating;
+import com.helpinghands.domain.entity.NotificationType;
 import com.helpinghands.domain.entity.Request;
 import com.helpinghands.domain.entity.RequestStatus;
 import com.helpinghands.domain.entity.User;
@@ -29,6 +30,7 @@ public class RatingService {
     private final RatingRepository ratingRepository;
     private final RequestRepository requestRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final NotificationService notificationService;
 
     @Transactional
     public RatingResponse submit(Long requestId, SubmitRatingRequest req) {
@@ -56,6 +58,11 @@ public class RatingService {
         rating.setComment(req.comment());
 
         Rating saved = ratingRepository.save(rating);
+
+        notificationService.notify(request.getPledgedBy(), NotificationType.RATING_RECEIVED,
+                "New Rating Received", "You received a " + req.score() + "-star rating for \"" + request.getTitle() + "\".",
+                "/requests/" + request.getId());
+
         return toResponse(saved);
     }
 
