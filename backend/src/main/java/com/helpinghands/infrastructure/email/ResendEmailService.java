@@ -1,43 +1,52 @@
 package com.helpinghands.infrastructure.email;
 
-import lombok.RequiredArgsConstructor;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import jakarta.mail.internet.MimeMessage;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * SMTP-based sending. Only active when app.email-provider=smtp — the
- * default is now ResendEmailService (see its class comment for why: Render
- * and similar free-tier hosts block outbound SMTP ports regardless of
- * credentials). This class remains for the docker-compose/VPS self-hosting
- * path, where a real SMTP connection isn't blocked at the network level.
+ * Sends email via Resend's REST API instead of SMTP. This is the actual fix
+ * for the "Connect timed out" error on smtp.gmail.com:587 seen on Render —
+ * that error isn't a credentials problem, it's Render's free/starter tier
+ * blocking outbound SMTP ports (25/465/587) at the network level, before
+ * the connection ever reaches Gmail. No SMTP configuration can work around
+ * that; the only real fix is not using SMTP. An HTTPS API call on port 443
+ * is never blocked the same way.
  *
- * Every send here is @Async: the calling HTTP request (register,
- * resend-verification, forgot-password) returns as soon as the token is
- * issued, without waiting on SMTP at all. This is what actually fixes a
- * slow/unreachable mail server appearing as a frontend request that never
- * resolves — previously the whole HTTP call blocked on mailSender.send().
- * Combined with the SMTP timeouts in application.yml, a failure here is now
- * fully isolated: it can only ever show up in the server logs, never as a
- * hung request in the browser.
+ * This is the default active EmailService (app.email-provider=resend).
+ * SmtpEmailService is still in the codebase, gated behind
+ * app.email-provider=smtp, for the docker-compose/VPS self-hosting path
+ * where outbound SMTP isn't blocked.
  */
 @Service
-@ConditionalOnProperty(name = "app.email-provider", havingValue = "smtp")
-@RequiredArgsConstructor
-public class SmtpEmailService implements EmailService {
+@ConditionalOnProperty(name = "app.email-provider", havingValue = "resend", matchIfMissing = true)
+public class ResendEmailService implements EmailService {
 
-    private static final Logger log = LoggerFactory.getLogger(SmtpEmailService.class);
+    private static final Logger log = LoggerFactory.getLogger(ResendEmailService.class);
+    private static final String RESEND_API_URL = "https://api.resend.com/emails";
 
-    private final JavaMailSender mailSender;
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Value("${mail.from-address}")
+    @Value("${resend.api-key}")
+    private String apiKey;
+
+    @Value("${resend.from-address}")
     private String fromAddress;
 
     @Override
@@ -97,13 +106,27 @@ public class SmtpEmailService implements EmailService {
 
     private void send(String toEmail, String subject, String htmlBody) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
-            helper.setFrom(fromAddress);
-            helper.setTo(toEmail);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true);
-            mailSender.send(message);
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("from", fromAddress);
+            payload.put("to", List.of(toEmail));
+            payload.put("subject", subject);
+            payload.put("html", htmlBody);
+
+            String json = objectMapper.writeValueAsString(payload);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(RESEND_API_URL))
+                    .timeout(Duration.ofSeconds(10))
+                    .header("Authorization", "Bearer " + apiKey)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() >= 400) {
+                log.error("Resend API rejected email to {}: HTTP {} — {}", toEmail, response.statusCode(), response.body());
+            }
         } catch (Exception e) {
             // Deliberately don't rethrow: a transient email-provider outage
             // shouldn't fail registration or the password-reset request itself

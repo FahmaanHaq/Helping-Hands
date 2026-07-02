@@ -183,6 +183,31 @@ public class AuthService {
         return new AuthResponse(token, saved.getId(), saved.getUsername(), roleNames, saved.getEmailVerified());
     }
 
+    /**
+     * Lets the MFA screen request a fresh code without re-entering the
+     * password. Rate-limited the same way as resend-verification — the
+     * userId alone doesn't prove anything (it was already exposed after a
+     * correct password check), so this can't be used to spam an arbitrary
+     * account, but it can still be hit repeatedly by whoever's mid-login,
+     * hence the cooldown.
+     */
+    @Transactional
+    public void resendMfaCode(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException("User not found", HttpStatus.NOT_FOUND));
+
+        boolean isAdmin = user.getRoles().stream().anyMatch(r -> r.getName() == RoleName.ADMINISTRATOR);
+        if (!isAdmin) {
+            throw new ApiException("MFA is not applicable to this account", HttpStatus.BAD_REQUEST);
+        }
+        if (!rateLimiterService.tryAcquire("resend-mfa:" + userId, RESEND_COOLDOWN)) {
+            throw new ApiException("Please wait a couple of minutes before requesting another code", HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        String code = tokenService.issueNumericCode(user, TokenType.MFA_LOGIN, 5);
+        emailService.sendMfaCodeEmail(user.getEmail(), user.getFullName(), code);
+    }
+
     @Transactional
     public void resendVerificationEmail(Long userId) {
         User user = userRepository.findById(userId)

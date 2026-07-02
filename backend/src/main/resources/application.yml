@@ -53,11 +53,23 @@ spring:
 mail:
   from-address: ${MAIL_FROM_ADDRESS:no-reply@helpinghands.local}
 
+# Which EmailService bean is active — see ResendEmailService's class comment
+# for why "resend" (an HTTPS API, not SMTP) is the default. Set to "smtp"
+# only for self-hosted/VPS deployments (docker-compose) where outbound SMTP
+# isn't blocked at the network level, and where MAIL_* below actually apply.
 app:
+  email-provider: ${EMAIL_PROVIDER:resend}
   # Used to build email verification / password reset links. Must be the
   # actual deployed frontend origin (e.g. https://helping-hands.vercel.app)
   # in every environment except local dev.
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
+
+resend:
+  api-key: ${RESEND_API_KEY:}
+  # onboarding@resend.dev works immediately with no domain verification —
+  # fine for a demo. Delivers to any recipient, but looks less polished
+  # than a real domain; switch once you verify your own domain in Resend.
+  from-address: ${RESEND_FROM_ADDRESS:Helping Hands <onboarding@resend.dev>}
 
 storage:
   local:

@@ -237,21 +237,65 @@ body {
 }
 
 .auth-page {
+  position: relative;
   display: flex;
   justify-content: center;
+  align-items: center;
+  min-height: 100vh;
   padding: 3rem 1rem;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 700px 420px at 12% 8%, rgba(31, 111, 80, 0.07), transparent 60%),
+    radial-gradient(ellipse 600px 500px at 92% 95%, rgba(165, 114, 10, 0.06), transparent 60%),
+    var(--hh-bg);
+}
+
+.auth-page-network {
+  position: absolute;
+  top: -8%;
+  right: -6%;
+  width: min(50vw, 560px);
+  height: auto;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.auth-page-network .hero-network-link { stroke: rgba(31, 111, 80, 0.18); }
+.auth-page-network .hero-network-node { fill: #a5720a; opacity: 0.5; }
+
+@media (max-width: 640px) {
+  .auth-page-network { display: none; }
 }
 
 .auth-form {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 380px;
   background: white;
-  padding: 2rem;
-  border-radius: 12px;
+  padding: 2.25rem 2rem;
+  border-radius: 16px;
   border: 1px solid var(--hh-border);
+  box-shadow: 0 12px 36px rgba(22, 35, 27, 0.08);
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.auth-form-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--hh-primary);
+  font-weight: 700;
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  margin-bottom: 0.25rem;
+}
+
+.auth-form h1 {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1.4rem;
+  margin: 0;
 }
 
 .auth-form label {
@@ -268,18 +312,50 @@ body {
   font: inherit;
 }
 
-.auth-form button {
-  padding: 0.7rem;
+.auth-form input:focus, .auth-form select:focus {
+  outline: none;
+  border-color: var(--hh-primary);
+  box-shadow: 0 0 0 3px rgba(31, 111, 80, 0.12);
+}
+
+/* :not(.link-button) matters here — without it, this rule's higher
+   specificity (class + element) overrides .link-button's plain-text
+   style, which is exactly what made "Back to login" render as a solid
+   green box instead of a subtle link. */
+.auth-form button:not(.link-button) {
+  padding: 0.75rem;
   background: var(--hh-primary);
   color: white;
   border: none;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
 }
 
-.auth-form button:hover { background: var(--hh-primary-dark); }
-.auth-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+.auth-form button:not(.link-button):hover { background: var(--hh-primary-dark); }
+.auth-form button:not(.link-button):active { transform: scale(0.99); }
+.auth-form button:not(.link-button):disabled { opacity: 0.5; cursor: not-allowed; }
+
+.auth-form .link-button {
+  align-self: flex-start;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.otp-input {
+  font-size: 1.4rem;
+  letter-spacing: 0.4em;
+  text-align: center;
+  font-family: 'Space Grotesk', monospace;
+}
+
+.resend-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
 
 .form-error {
   color: var(--hh-error);

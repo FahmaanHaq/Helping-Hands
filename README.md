@@ -483,3 +483,41 @@ surfaced 13 gaps. All are now closed:
    this is fine (re-upload); for anything real, migrate old files before rotating.
 3. No new env vars needed for MFA, failed-login tracking, or scheduled
    jobs — they use existing SMTP/DB config.
+
+## Real fix for emails never arriving (root cause found)
+
+The "Sending..." hang was fixed earlier (async + timeouts), but that only
+made the *symptom* go away — the actual emails still weren't arriving.
+Render's own logs showed why:
+
+```
+Failed to send email to ...: Mail server connection failed.
+Couldn't connect to host, port: smtp.gmail.com, 587; timeout 10000;
+java.net.SocketTimeoutException: Connect timed out
+```
+
+This is **not a credentials problem**. Render (like most free/starter-tier
+PaaS hosts) blocks outbound SMTP ports (25/465/587) at the network level —
+the connection never reaches Gmail at all, regardless of how correct
+`MAIL_USERNAME`/`MAIL_PASSWORD` are.
+
+**Fix**: switched the default email backend from SMTP to
+[Resend](https://resend.com)'s HTTPS API (`ResendEmailService`) — an API
+call over port 443 isn't blocked the way raw SMTP is. `SmtpEmailService`
+is still in the codebase, gated behind `EMAIL_PROVIDER=smtp`, for the
+docker-compose/VPS self-hosting path where outbound SMTP genuinely isn't
+blocked.
+
+### Required setup
+
+1. Sign up at resend.com (free tier), copy your API key.
+2. On Render, set:
+   ```
+   EMAIL_PROVIDER=resend
+   RESEND_API_KEY=re_your_actual_key
+   RESEND_FROM_ADDRESS=Helping Hands <onboarding@resend.dev>
+   ```
+   `onboarding@resend.dev` works immediately with no domain verification —
+   fine for a demo. You can switch to a verified domain address later.
+3. You can leave the old `MAIL_*` variables in place or remove them —
+   they're simply unused while `EMAIL_PROVIDER=resend`.

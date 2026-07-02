@@ -47,6 +47,12 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok("Login successful", response));
     }
 
+    @PostMapping("/resend-mfa")
+    public ApiResponse<Void> resendMfa(@RequestParam Long userId) {
+        authService.resendMfaCode(userId);
+        return ApiResponse.ok("A new code has been sent", null);
+    }
+
     @GetMapping("/verify-email")
     public ApiResponse<Void> verifyEmail(@RequestParam String token) {
         authService.verifyEmail(token);

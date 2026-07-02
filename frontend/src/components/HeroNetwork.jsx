@@ -22,9 +22,9 @@ const LINKS = [
   [0, 1], [1, 2], [1, 3], [3, 5], [4, 5], [2, 6], [1, 4], [4, 7]
 ];
 
-export default function HeroNetwork() {
+export default function HeroNetwork({ className = 'hero-network' }) {
   return (
-    <svg className="hero-network" viewBox="0 0 360 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg className={className} viewBox="0 0 360 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       {LINKS.map(([a, b], i) => (
         <line
           key={i}

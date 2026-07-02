@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { verifyEmail } from '../services/authService';
 import { useAuth } from '../hooks/useAuth';
+import Logomark from '../components/Logomark.jsx';
+import HeroNetwork from '../components/HeroNetwork.jsx';
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
@@ -31,7 +33,12 @@ export default function VerifyEmailPage() {
 
   return (
     <div className="auth-page">
+      <HeroNetwork className="auth-page-network" />
       <div className="auth-form">
+        <div className="auth-form-brand">
+          <Logomark size={22} />
+          <span>Helping Hands</span>
+        </div>
         <h1>{status === 'success' ? 'Email verified' : status === 'error' ? 'Verification failed' : 'Verifying…'}</h1>
         <p className="hint-text">{message}</p>
         <p><Link to="/dashboard">Go to dashboard</Link></p>

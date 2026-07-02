@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import Logomark from '../components/Logomark.jsx';
+import HeroNetwork from '../components/HeroNetwork.jsx';
 
 const ROLE_OPTIONS = [
   { value: 'DONOR', label: 'Donor' },
@@ -39,7 +41,13 @@ export default function RegisterPage() {
 
   return (
     <div className="auth-page">
+      <HeroNetwork className="auth-page-network" />
       <form onSubmit={handleSubmit} className="auth-form">
+        <div className="auth-form-brand">
+          <Logomark size={22} />
+          <span>Helping Hands</span>
+        </div>
+
         <h1>Create your account</h1>
 
         <label>
