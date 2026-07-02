@@ -10,4 +10,11 @@ public record RequestStatusChangeRequest(
         com.helpinghands.domain.entity.DeliveryMethod deliveryMethod,
         @Size(max = 300) String courierDetails
 ) {
+    /**
+     * Convenience constructor for the common case (any transition that
+     * isn't a goods delivery update) — no delivery info to carry.
+     */
+    public RequestStatusChangeRequest(RequestStatus status, String remarks) {
+        this(status, remarks, null, null);
+    }
 }
