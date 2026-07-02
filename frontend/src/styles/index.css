@@ -893,3 +893,145 @@ body {
   font-size: 0.8rem;
   color: #6b6f68;
 }
+
+/* ---- Public homepage ---- */
+
+.public-page {
+  min-height: 100vh;
+  background: var(--hh-bg);
+}
+
+.public-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: white;
+  border-bottom: 1px solid var(--hh-border);
+}
+
+.public-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  color: var(--hh-primary);
+}
+
+.public-nav-links a {
+  color: var(--hh-text);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--hh-border);
+  border-radius: 8px;
+}
+
+.public-hero {
+  background: #16231b;
+  color: white;
+  padding: 4rem 2rem;
+  text-align: left;
+  max-width: 900px;
+}
+
+.public-hero h1 {
+  font-size: 2.2rem;
+  margin-bottom: 1rem;
+}
+
+.public-hero p {
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 600px;
+  margin-bottom: 1.5rem;
+}
+
+.public-hero-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.public-section {
+  padding: 2.5rem 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.featured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.featured-card {
+  background: white;
+  border: 1px solid var(--hh-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.featured-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.featured-card-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--hh-primary);
+}
+
+.featured-card h3 {
+  margin: 0.3rem 0;
+  font-size: 1rem;
+}
+
+.public-how-it-works {
+  background: white;
+  border-radius: 16px;
+  margin: 2rem auto;
+}
+
+.how-it-works-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.how-it-works-step p { margin: 0.3rem 0 0; }
+
+.how-it-works-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--hh-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.6rem;
+}

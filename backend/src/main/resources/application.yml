@@ -65,6 +65,13 @@ storage:
     # anything written here is wiped on every redeploy/restart. Fine for a demo;
     # swap FileStorageService for a cloud-backed implementation before real use.
     base-path: ${STORAGE_BASE_PATH:./uploads}
+  # 256-bit AES key, base64-encoded. Generate with: openssl rand -base64 32
+  # Every uploaded file is encrypted with this key before touching disk.
+  # Losing it makes existing files permanently unreadable — treat it like a
+  # database credential, not a config toggle. The fallback below is a valid
+  # key so the app doesn't crash without one set, but it's PUBLIC (it's in
+  # this file) — never rely on it outside local scratch testing.
+  encryption-key: ${STORAGE_ENCRYPTION_KEY:WL+Cm4Prkf7eotbRePGacs4TfT+0eal+nGCIqdgjmoI=}
 
 security:
   jwt:

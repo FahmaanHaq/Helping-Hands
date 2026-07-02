@@ -6,6 +6,8 @@ import jakarta.validation.constraints.Size;
 
 public record RequestStatusChangeRequest(
         @NotNull RequestStatus status,
-        @Size(max = 500) String remarks
+        @Size(max = 500) String remarks,
+        com.helpinghands.domain.entity.DeliveryMethod deliveryMethod,
+        @Size(max = 300) String courierDetails
 ) {
 }

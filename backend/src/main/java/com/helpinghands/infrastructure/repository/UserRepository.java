@@ -30,5 +30,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT COUNT(DISTINCT u) FROM User u JOIN u.roles r WHERE r.name = :roleName")
     long countByRoleName(@Param("roleName") com.helpinghands.domain.entity.RoleName roleName);
 
+    @Query("SELECT DISTINCT u FROM User u JOIN u.roles r WHERE r.name = :roleName AND u.isActive = true")
+    java.util.List<User> findAllActiveByRoleName(@Param("roleName") com.helpinghands.domain.entity.RoleName roleName);
+
     long countByAccountLockedTrue();
+
+    @Query("SELECT u FROM User u WHERE u.isActive = true AND " +
+           "(u.lastLoginDate IS NOT NULL AND u.lastLoginDate < :cutoff)")
+    java.util.List<User> findInactiveSince(@Param("cutoff") java.time.LocalDateTime cutoff);
 }

@@ -68,6 +68,17 @@ public class Request extends BaseEntity {
     private String cancellationReason;
 
     /**
+     * Delivery logistics for GOODS requests — set by the pledged user (Donor
+     * or Delivery Volunteer) when they mark progress. Null for SERVICE requests.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delivery_method", length = 30)
+    private DeliveryMethod deliveryMethod;
+
+    @Column(name = "courier_details", length = 300)
+    private String courierDetails;
+
+    /**
      * Content moderation, independent of the request's lifecycle status.
      * A flagged request stays in whatever status it was in (CREATED, PLEDGED,
      * etc.) but is hidden from the public marketplace browse until an admin

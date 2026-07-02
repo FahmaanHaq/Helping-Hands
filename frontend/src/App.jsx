@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AppShell from './components/Layout/AppShell.jsx';
+import HomePage from './pages/HomePage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
@@ -15,20 +16,28 @@ import AdminUsersPage from './pages/AdminUsersPage.jsx';
 import AdminAuditLogPage from './pages/AdminAuditLogPage.jsx';
 import AdminReportsPage from './pages/AdminReportsPage.jsx';
 import AdminFlaggedContentPage from './pages/AdminFlaggedContentPage.jsx';
+import DonorDirectoryPage from './pages/DonorDirectoryPage.jsx';
 import CreateRequestPage from './pages/CreateRequestPage.jsx';
 import RequestsListPage from './pages/RequestsListPage.jsx';
 import RequestDetailPage from './pages/RequestDetailPage.jsx';
 import ProtectedRoute from './routes/ProtectedRoute.jsx';
+import { useAuth } from './hooks/useAuth.js';
 
 // Authenticated pages get the sidebar shell; public pages (login/register) don't.
 function Shell({ children }) {
   return <AppShell>{children}</AppShell>;
 }
 
+// Logged-in visitors land on their dashboard; everyone else sees the public homepage.
+function RootRoute() {
+  const { user } = useAuth();
+  return user ? <Navigate to="/dashboard" replace /> : <HomePage />;
+}
+
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<RootRoute />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -122,6 +131,15 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={['ADMINISTRATOR']}>
             <Shell><AdminReportsPage /></Shell>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/directory/donors"
+        element={
+          <ProtectedRoute allowedRoles={['CHILDRENS_HOME']}>
+            <Shell><DonorDirectoryPage /></Shell>
           </ProtectedRoute>
         }
       />

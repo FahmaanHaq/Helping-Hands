@@ -46,8 +46,10 @@ export default function RequestsListPage() {
   const { hasRole } = useAuth();
   const isHome = hasRole('CHILDRENS_HOME');
   const isDonor = hasRole('DONOR');
+  const isDeliveryVolunteer = hasRole('DELIVERY_VOLUNTEER');
   const isProvider = hasRole('SERVICE_PROVIDER');
-  const isMarketplaceRole = isDonor || isProvider;
+  const isGoodsRole = isDonor || isDeliveryVolunteer;
+  const isMarketplaceRole = isGoodsRole || isProvider;
   const isAdmin = hasRole('ADMINISTRATOR');
 
   const [mainPage, setMainPage] = useState(null);   // Page<RequestResponse> for the primary list
@@ -60,7 +62,7 @@ export default function RequestsListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const categoryOptions = isDonor ? GOODS_CATEGORIES : SERVICE_CATEGORIES;
+  const categoryOptions = isGoodsRole ? GOODS_CATEGORIES : SERVICE_CATEGORIES;
 
   const load = async () => {
     setLoading(true);
@@ -72,8 +74,8 @@ export default function RequestsListPage() {
         setMainPage(await browseRequests(adminStatus, {}, pageNum));
       } else if (isMarketplaceRole) {
         const filters = {
-          requestType: isDonor ? 'GOODS' : 'SERVICE',
-          ...(isDonor && category ? { goodsCategory: category } : {}),
+          requestType: isGoodsRole ? 'GOODS' : 'SERVICE',
+          ...(isGoodsRole && category ? { goodsCategory: category } : {}),
           ...(isProvider && category ? { serviceCategory: category } : {}),
           ...(urgency ? { urgency } : {})
         };

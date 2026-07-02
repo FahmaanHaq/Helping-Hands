@@ -42,7 +42,12 @@ export async function browseFlaggedRequests(page = 0) {
   return data.data;
 }
 
-export async function changeRequestStatus(id, status, remarks) {
-  const { data } = await api.patch(`/requests/${id}/status`, { status, remarks });
+export async function changeRequestStatus(id, status, remarks, deliveryMethod, courierDetails) {
+  const { data } = await api.patch(`/requests/${id}/status`, { status, remarks, deliveryMethod, courierDetails });
+  return data.data;
+}
+
+export async function getRecommendedRequests() {
+  const { data } = await api.get('/requests/recommended');
   return data.data;
 }

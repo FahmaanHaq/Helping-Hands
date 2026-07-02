@@ -14,7 +14,7 @@ function getAvailableActions(request, user, hasRole) {
   const actions = [];
   const isOwningHome = hasRole('CHILDRENS_HOME'); // ownership itself is enforced server-side; this just decides what to *show*
   const isPledgedUser = request.pledgedByUsername === user?.username;
-  const isDonor = hasRole('DONOR');
+  const isDonor = hasRole('DONOR') || hasRole('DELIVERY_VOLUNTEER');
   const isProvider = hasRole('SERVICE_PROVIDER');
   const isAdmin = hasRole('ADMINISTRATOR');
 
@@ -35,12 +35,12 @@ function getAvailableActions(request, user, hasRole) {
       break;
     case 'ACCEPTED':
       if (isPledgedUser || isOwningHome || isAdmin) {
-        actions.push({ label: 'Mark In Progress', status: 'IN_PROGRESS' });
+        actions.push({ label: 'Mark In Progress', status: 'IN_PROGRESS', needsDelivery: request.requestType === 'GOODS' });
       }
       break;
     case 'IN_PROGRESS':
       if (isPledgedUser || isAdmin) {
-        actions.push({ label: 'Mark Delivered', status: 'DELIVERED' });
+        actions.push({ label: 'Mark Delivered', status: 'DELIVERED', needsDelivery: request.requestType === 'GOODS' });
       }
       break;
     case 'DELIVERED':
@@ -102,6 +102,9 @@ export default function RequestDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [pendingDeliveryAction, setPendingDeliveryAction] = useState(null);
+  const [deliveryMethod, setDeliveryMethod] = useState('SELF_DELIVERY');
+  const [courierDetails, setCourierDetails] = useState('');
 
   const isAdmin = hasRole('ADMINISTRATOR');
 
@@ -121,6 +124,10 @@ export default function RequestDetailPage() {
   useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAction = async (action) => {
+    if (action.needsDelivery) {
+      setPendingDeliveryAction(action);
+      return;
+    }
     let remarks = null;
     if (action.needsReason) {
       remarks = window.prompt('Reason:');
@@ -129,6 +136,21 @@ export default function RequestDetailPage() {
     setActionLoading(true);
     try {
       await changeRequestStatus(id, action.status, remarks);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Action failed');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeliverySubmit = async (e) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      await changeRequestStatus(id, pendingDeliveryAction.status, null, deliveryMethod, courierDetails);
+      setPendingDeliveryAction(null);
+      setCourierDetails('');
       load();
     } catch (err) {
       alert(err.response?.data?.message || 'Action failed');
@@ -184,6 +206,15 @@ export default function RequestDetailPage() {
             </span>
           </div>
         )}
+        {request.deliveryMethod && (
+          <div className="profile-row">
+            <span>Delivery Method</span>
+            <strong>
+              {request.deliveryMethod.replace('_', ' ')}
+              {request.courierDetails ? ` — ${request.courierDetails}` : ''}
+            </strong>
+          </div>
+        )}
         {request.status === 'CANCELLED' && request.cancellationReason && (
           <p className="form-error">Cancelled: {request.cancellationReason}</p>
         )}
@@ -204,6 +235,29 @@ export default function RequestDetailPage() {
               </button>
             ))}
           </div>
+        )}
+
+        {pendingDeliveryAction && (
+          <form onSubmit={handleDeliverySubmit} className="stacked-form" style={{ marginTop: '1rem' }}>
+            <label>
+              Delivery Method
+              <select value={deliveryMethod} onChange={(e) => setDeliveryMethod(e.target.value)}>
+                <option value="SELF_DELIVERY">Self Delivery</option>
+                <option value="VOLUNTEER_PICKUP">Volunteer Pickup</option>
+                <option value="COURIER">Courier</option>
+              </select>
+            </label>
+            <label>
+              Courier / Tracking Details (optional)
+              <input value={courierDetails} onChange={(e) => setCourierDetails(e.target.value)} />
+            </label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button type="submit" disabled={actionLoading}>
+                {actionLoading ? 'Saving…' : `Confirm: ${pendingDeliveryAction.label}`}
+              </button>
+              <button type="button" onClick={() => setPendingDeliveryAction(null)}>Cancel</button>
+            </div>
+          </form>
         )}
 
         {isAdmin && (

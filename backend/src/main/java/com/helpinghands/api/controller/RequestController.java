@@ -24,6 +24,7 @@ import java.util.List;
 public class RequestController {
 
     private final RequestService requestService;
+    private final com.helpinghands.application.service.RequestMatchingService requestMatchingService;
 
     @PostMapping
     @PreAuthorize("hasRole('CHILDRENS_HOME')")
@@ -72,11 +73,22 @@ public class RequestController {
     }
 
     @GetMapping("/my-pledges")
-    @PreAuthorize("hasRole('DONOR') or hasRole('SERVICE_PROVIDER')")
+    @PreAuthorize("hasRole('DONOR') or hasRole('SERVICE_PROVIDER') or hasRole('DELIVERY_VOLUNTEER')")
     public ApiResponse<Page<RequestResponse>> myPledges(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ApiResponse.ok("Retrieved", requestService.myPledges(PageRequest.of(page, size)));
+    }
+
+    /**
+     * Answers the SRS's "Auto-match items to requests" use case — a small,
+     * personalized set of open requests ranked by the caller's past pledge
+     * categories, not a full paginated browse.
+     */
+    @GetMapping("/recommended")
+    @PreAuthorize("hasRole('DONOR') or hasRole('SERVICE_PROVIDER') or hasRole('DELIVERY_VOLUNTEER')")
+    public ApiResponse<java.util.List<RequestResponse>> recommended() {
+        return ApiResponse.ok("Retrieved", requestMatchingService.recommendedForCurrentUser());
     }
 
     @GetMapping("/{id}/history")

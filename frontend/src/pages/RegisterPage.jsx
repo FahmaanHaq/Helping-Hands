@@ -5,7 +5,8 @@ import { useAuth } from '../hooks/useAuth';
 const ROLE_OPTIONS = [
   { value: 'DONOR', label: 'Donor' },
   { value: 'SERVICE_PROVIDER', label: 'Service Provider' },
-  { value: 'CHILDRENS_HOME', label: "Children's Home" }
+  { value: 'CHILDRENS_HOME', label: "Children's Home" },
+  { value: 'DELIVERY_VOLUNTEER', label: 'Delivery Volunteer' }
   // ADMINISTRATOR is intentionally excluded — admins are provisioned, never self-registered.
 ];
 

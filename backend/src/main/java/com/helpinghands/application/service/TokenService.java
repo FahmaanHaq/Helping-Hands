@@ -64,6 +64,27 @@ public class TokenService {
         return Optional.of(token.getUser());
     }
 
+    /**
+     * Same hashing/storage/single-use guarantees as issueToken, but generates
+     * a short numeric code instead of a long base64 string — needed for MFA,
+     * where a human has to type the value in rather than click a link.
+     */
+    @Transactional
+    public String issueNumericCode(User user, TokenType type, long validityMinutes) {
+        tokenRepository.deleteUnusedByUserIdAndType(user.getId(), type);
+
+        String code = String.valueOf(100000 + SECURE_RANDOM.nextInt(900000)); // 6 digits, never leading zero
+
+        VerificationToken token = new VerificationToken();
+        token.setUser(user);
+        token.setTokenHash(hash(code));
+        token.setTokenType(type);
+        token.setExpiryDate(LocalDateTime.now().plusMinutes(validityMinutes));
+        tokenRepository.save(token);
+
+        return code;
+    }
+
     private String generateRawToken() {
         byte[] bytes = new byte[32];
         SECURE_RANDOM.nextBytes(bytes);

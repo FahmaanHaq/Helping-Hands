@@ -73,6 +73,20 @@ public class SmtpEmailService implements EmailService {
         send(toEmail, subject, body);
     }
 
+    @Override
+    @Async
+    public void sendMfaCodeEmail(String toEmail, String recipientName, String code) {
+        String subject = "Your Helping Hands admin login code";
+        String body = """
+                <p>Hi %s,</p>
+                <p>Your one-time login code is:</p>
+                <p style="font-size: 28px; font-weight: 700; letter-spacing: 4px;">%s</p>
+                <p>This code expires in 5 minutes. If you didn't try to log in, you can ignore this email —
+                your account has not been accessed.</p>
+                """.formatted(recipientName, code);
+        send(toEmail, subject, body);
+    }
+
     private void send(String toEmail, String subject, String htmlBody) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

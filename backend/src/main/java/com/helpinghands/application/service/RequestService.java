@@ -31,6 +31,7 @@ public class RequestService {
     private final RatingService ratingService;
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
+    private final com.helpinghands.infrastructure.repository.UserRepository userRepository;
 
     @Transactional
     public RequestResponse create(CreateRequestRequest req) {
@@ -173,6 +174,11 @@ public class RequestService {
         if (to == RequestStatus.CANCELLED) {
             request.setCancellationReason(change.remarks());
         }
+        if (request.isGoods() && change.deliveryMethod() != null
+                && (to == RequestStatus.IN_PROGRESS || to == RequestStatus.DELIVERED)) {
+            request.setDeliveryMethod(change.deliveryMethod());
+            request.setCourierDetails(change.courierDetails());
+        }
 
         request.setStatus(to);
         Request saved = requestRepository.save(request);
@@ -209,6 +215,7 @@ public class RequestService {
                     notificationService.notify(pledgedUser, NotificationType.REQUEST_CANCELLED,
                             "Request Cancelled", "\"" + request.getTitle() + "\", which you pledged to, was cancelled.", link);
                 }
+                checkForMisusePattern(homeUser, pledgedUser);
             }
             default -> { /* CREATED has no prior recipient to notify */ }
         }
@@ -283,7 +290,11 @@ public class RequestService {
                 // Must NOT be the owning home, and role must match the request type.
                 if (isOwningHome) yield false;
                 if (request.isGoods()) {
-                    yield user.getRoles().stream().anyMatch(r -> r.getName() == RoleName.DONOR);
+                    // Delivery Volunteers are a transport-only variant of Donor per the spec —
+                    // no direct child interaction, no police clearance — so they can pledge
+                    // to goods requests exactly like a Donor.
+                    yield user.getRoles().stream().anyMatch(r ->
+                            r.getName() == RoleName.DONOR || r.getName() == RoleName.DELIVERY_VOLUNTEER);
                 }
                 // SERVICE requests: role alone isn't enough — the provider profile
                 // itself must be APPROVED and, if police clearance is required,
@@ -304,6 +315,42 @@ public class RequestService {
 
         if (!authorized) {
             throw new ApiException("You are not permitted to make this status change", HttpStatus.FORBIDDEN);
+        }
+    }
+
+    /**
+     * Answers the SRS's "Detect fraud or misuse" System use case with a
+     * bounded, explainable heuristic rather than a black-box model: a home
+     * or fulfiller with an unusually high number of cancelled requests gets
+     * flagged for admin review. Not a determination of guilt — just a
+     * signal, exactly like the "flag repeated suspicious activities"
+     * requirement for login attempts.
+     */
+    private static final long CANCELLATION_MISUSE_THRESHOLD = 3;
+
+    private void checkForMisusePattern(User homeUser, User pledgedUser) {
+        long homeCancellations = requestRepository.countCancelledByHome(homeUser.getId());
+        if (homeCancellations == CANCELLATION_MISUSE_THRESHOLD) {
+            alertAdminsOfMisuse(homeUser, homeCancellations, "Children's Home");
+        }
+
+        if (pledgedUser != null) {
+            long userCancellations = requestRepository.countCancelledByPledgedUser(pledgedUser.getId());
+            if (userCancellations == CANCELLATION_MISUSE_THRESHOLD) {
+                alertAdminsOfMisuse(pledgedUser, userCancellations, "Donor/Provider");
+            }
+        }
+    }
+
+    private void alertAdminsOfMisuse(User subject, long cancellationCount, String subjectRole) {
+        String message = subjectRole + " \"" + subject.getUsername() + "\" has had " + cancellationCount
+                + " requests cancelled — pattern flagged for review, not an automatic penalty.";
+
+        auditLogService.record("POSSIBLE_MISUSE_DETECTED", "USER", subject.getId(), message);
+
+        for (User admin : userRepository.findAllActiveByRoleName(RoleName.ADMINISTRATOR)) {
+            notificationService.notify(admin, NotificationType.POSSIBLE_MISUSE_DETECTED,
+                    "Possible Misuse Detected", message, "/admin/users");
         }
     }
 
@@ -333,6 +380,15 @@ public class RequestService {
         historyRepository.save(history);
     }
 
+    /**
+     * Public wrapper around the response mapping — used by RequestMatchingService
+     * so recommended-requests results are shaped identically to every other
+     * request listing, without duplicating the mapping logic.
+     */
+    public RequestResponse toResponsePublic(Request request) {
+        return toResponse(request);
+    }
+
     private RequestResponse toResponse(Request r) {
         return new RequestResponse(
                 r.getId(),
@@ -351,6 +407,8 @@ public class RequestService {
                 r.getCancellationReason(),
                 r.getFlagged(),
                 r.getFlagReason(),
+                r.getDeliveryMethod(),
+                r.getCourierDetails(),
                 r.getCreatedDate()
         );
     }

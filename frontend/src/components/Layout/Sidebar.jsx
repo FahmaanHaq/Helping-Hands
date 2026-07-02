@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Home, HardHat, ShieldCheck, PackageSearch, LogOut, X,
-  Users, ScrollText, BarChart3, Flag
+  Users, ScrollText, BarChart3, Flag, Truck
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import Logomark from '../Logomark.jsx';
@@ -52,10 +52,24 @@ export default function Sidebar({ open, onClose }) {
             </NavLink>
           )}
 
+          {hasRole('DELIVERY_VOLUNTEER') && (
+            <NavLink to="/requests" className={linkClass} onClick={onClose}>
+              <Truck size={18} />
+              <span>Deliveries</span>
+            </NavLink>
+          )}
+
           {hasRole('CHILDRENS_HOME') && (
             <NavLink to="/requests" className={linkClass} onClick={onClose}>
               <PackageSearch size={18} />
               <span>My Requests</span>
+            </NavLink>
+          )}
+
+          {hasRole('CHILDRENS_HOME') && (
+            <NavLink to="/directory/donors" className={linkClass} onClick={onClose}>
+              <Users size={18} />
+              <span>Browse Donors</span>
             </NavLink>
           )}
 

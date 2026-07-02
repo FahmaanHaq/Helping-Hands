@@ -1,0 +1,64 @@
+package com.helpinghands.api.controller;
+
+import com.helpinghands.application.dto.ApiResponse;
+import com.helpinghands.application.dto.request.PublicFeaturedRequestResponse;
+import com.helpinghands.domain.entity.Request;
+import com.helpinghands.domain.entity.RequestStatus;
+import com.helpinghands.domain.entity.UrgencyLevel;
+import com.helpinghands.infrastructure.repository.RequestRepository;
+import com.helpinghands.infrastructure.repository.RequestSpecifications;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Comparator;
+import java.util.List;
+
+/**
+ * The only endpoints in the whole API that are genuinely public (no JWT,
+ * see SecurityConfig's permitAll for this path). Deliberately exposes the
+ * absolute minimum: request title/category/urgency/home name — never
+ * contact details, documents, or anything a bad actor could scrape for
+ * something other than "is this platform active and worth signing up for."
+ */
+@RestController
+@RequestMapping("/api/v1/public")
+@RequiredArgsConstructor
+@Tag(name = "Public", description = "Unauthenticated homepage content")
+public class PublicController {
+
+    private final RequestRepository requestRepository;
+
+    @GetMapping("/featured-requests")
+    public ApiResponse<List<PublicFeaturedRequestResponse>> featuredRequests() {
+        Specification<Request> openNotFlagged = Specification
+                .where(RequestSpecifications.hasStatus(RequestStatus.CREATED))
+                .and(RequestSpecifications.notFlagged());
+
+        List<Request> requests = requestRepository.findAll(openNotFlagged, PageRequest.of(0, 50)).getContent();
+
+        List<PublicFeaturedRequestResponse> featured = requests.stream()
+                .sorted(Comparator.comparingInt((Request r) -> urgencyWeight(r.getUrgency())).reversed())
+                .limit(6)
+                .map(r -> new PublicFeaturedRequestResponse(
+                        r.getId(), r.getTitle(), r.getChildrensHome().getHomeName(),
+                        r.getRequestType(), r.getGoodsCategory(), r.getServiceCategory(),
+                        r.getQuantity(), r.getUrgency()))
+                .toList();
+
+        return ApiResponse.ok("Retrieved", featured);
+    }
+
+    private int urgencyWeight(UrgencyLevel urgency) {
+        return switch (urgency) {
+            case CRITICAL -> 4;
+            case HIGH -> 3;
+            case MEDIUM -> 2;
+            case LOW -> 1;
+        };
+    }
+}

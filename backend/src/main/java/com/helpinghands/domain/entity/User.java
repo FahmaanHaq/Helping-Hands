@@ -62,6 +62,15 @@ public class User extends BaseEntity {
     @Column(name = "suspended_date")
     private java.time.LocalDateTime suspendedDate;
 
+    /**
+     * Used by the scheduled inactivity sweep (see UserMaintenanceService) to
+     * identify accounts that haven't logged in for a long time. Null means
+     * "never logged in since this column was added" — treated as active
+     * until the next real login, not immediately flagged.
+     */
+    @Column(name = "last_login_date")
+    private java.time.LocalDateTime lastLoginDate;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",

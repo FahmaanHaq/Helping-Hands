@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -45,6 +46,7 @@ public class AuthService {
     private final TokenService tokenService;
     private final EmailService emailService;
     private final RateLimiterService rateLimiterService;
+    private final LoginSecurityService loginSecurityService;
 
     @Value("${security.admin-bootstrap-secret}")
     private String adminBootstrapSecret;
@@ -71,6 +73,7 @@ public class AuthService {
         user.setPhoneNumber(request.phoneNumber());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRoles(Set.of(role));
+        user.setLastLoginDate(LocalDateTime.now());
         // Verification-dependent roles (ChildrensHome, ServiceProvider) stay functionally
         // restricted until their respective verification workflow entities are approved;
         // that check lives in those modules, not here.
@@ -121,11 +124,31 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.usernameOrEmail(), request.password()));
+        loginSecurityService.assertNotRateLimited(request.usernameOrEmail());
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.usernameOrEmail(), request.password()));
+        } catch (org.springframework.security.core.AuthenticationException ex) {
+            loginSecurityService.recordFailure(request.usernameOrEmail());
+            throw ex;
+        }
 
         User user = userRepository.findActiveByUsernameOrEmail(request.usernameOrEmail())
                 .orElseThrow(() -> new ApiException("Invalid username/email or password", HttpStatus.UNAUTHORIZED));
+
+        boolean isAdmin = user.getRoles().stream().anyMatch(r -> r.getName() == RoleName.ADMINISTRATOR);
+        if (isAdmin) {
+            // Password already verified above — MFA is a second factor on top of
+            // that, not a replacement for it. No JWT is issued until the emailed
+            // code is also confirmed via /auth/verify-mfa.
+            String code = tokenService.issueNumericCode(user, TokenType.MFA_LOGIN, 5);
+            emailService.sendMfaCodeEmail(user.getEmail(), user.getFullName(), code);
+            return AuthResponse.mfaRequired(user.getId());
+        }
+
+        user.setLastLoginDate(LocalDateTime.now());
+        userRepository.save(user);
 
         UserPrincipal principal = new UserPrincipal(user);
         String token = jwtService.generateToken(principal);
@@ -135,6 +158,29 @@ public class AuthService {
                 .collect(Collectors.toList());
 
         return new AuthResponse(token, user.getId(), user.getUsername(), roleNames, user.getEmailVerified());
+    }
+
+    @Transactional
+    public AuthResponse verifyMfa(Long userId, String code) {
+        User codeOwner = tokenService.consumeToken(code, TokenType.MFA_LOGIN)
+                .orElseThrow(() -> new ApiException("Invalid or expired code", HttpStatus.BAD_REQUEST));
+
+        if (!codeOwner.getId().equals(userId)) {
+            // Defensive check — shouldn't happen since the hash is unique per
+            // issuance, but never trust client-supplied IDs to imply ownership.
+            throw new ApiException("Invalid or expired code", HttpStatus.BAD_REQUEST);
+        }
+
+        codeOwner.setLastLoginDate(LocalDateTime.now());
+        User saved = userRepository.save(codeOwner);
+
+        UserPrincipal principal = new UserPrincipal(saved);
+        String token = jwtService.generateToken(principal);
+        List<String> roleNames = principal.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        return new AuthResponse(token, saved.getId(), saved.getUsername(), roleNames, saved.getEmailVerified());
     }
 
     @Transactional

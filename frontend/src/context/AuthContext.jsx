@@ -38,10 +38,27 @@ export function AuthProvider({ children }) {
     setError(null);
     try {
       const result = await authService.login(usernameOrEmail, password);
+      if (!result.mfaRequired) {
+        persistSession(result);
+      }
+      return result; // caller checks result.mfaRequired to decide whether to show the OTP step
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const completeMfaLogin = useCallback(async (userId, code) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await authService.verifyMfa(userId, code);
       persistSession(result);
       return result;
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.message || 'Invalid or expired code');
       throw err;
     } finally {
       setLoading(false);
@@ -84,8 +101,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, error, login, register, logout, hasRole, markEmailVerified }),
-    [user, loading, error, login, register, logout, hasRole, markEmailVerified]
+    () => ({ user, loading, error, login, completeMfaLogin, register, logout, hasRole, markEmailVerified }),
+    [user, loading, error, login, completeMfaLogin, register, logout, hasRole, markEmailVerified]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

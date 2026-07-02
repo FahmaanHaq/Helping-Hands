@@ -426,3 +426,60 @@ guide, security best practices, etc.) — this README stays focused on
 - **Dashboard stats are now real data** everywhere, not placeholders (see
   above).
 - **Favicon** added, matching the sidebar brand mark.
+
+## SRS Gap Closure Batch
+
+A full comparison against the original SRS (see `docs/PROJECT_DOCUMENTATION.md`)
+surfaced 13 gaps. All are now closed:
+
+- **Delivery Volunteer role** — a transport-only Donor variant per the SRS
+  (no child contact, no police clearance); can pledge to GOODS requests
+  exactly like a Donor.
+- **Public homepage** (`/` when logged out) — hero, CTAs, a live "Featured
+  Requests" section pulling from a genuinely public endpoint
+  (`GET /api/v1/public/featured-requests`, no auth), and a "How It Works"
+  section. Logged-in visitors are redirected straight to their dashboard.
+- **MFA for Administrators** — email-based OTP (6-digit code, 5-minute
+  expiry) as a second factor after password verification. `POST /auth/login`
+  returns `{mfaRequired: true, userId}` for admins instead of a token;
+  `POST /auth/verify-mfa` completes the login. Reuses the same hashed-token
+  infrastructure as email verification/password reset (`TokenType.MFA_LOGIN`).
+- **Encryption at rest for documents** — every uploaded file is now
+  AES-256-GCM encrypted before it touches disk (`STORAGE_ENCRYPTION_KEY` env
+  var) and decrypted on read. Losing that key makes existing files
+  permanently unreadable — treat it like a database credential.
+- **Failed login tracking + brute-force protection + admin alerts** — 5
+  failed attempts in 15 minutes temporarily blocks further attempts on that
+  identifier *and* notifies every Administrator (`LoginSecurityService`).
+  Closes the "no login rate limiting" gap flagged earlier at the same time.
+- **Auto-match ("Recommended For You")** — `GET /api/v1/requests/recommended`
+  ranks open requests by the caller's past pledge categories, urgency as
+  tiebreaker. Shown on Donor/Provider/Delivery-Volunteer dashboards.
+- **Fraud/misuse detection** — a bounded heuristic, not a black box: 3+
+  cancelled requests tied to the same Home or fulfiller flags that account
+  for admin review (`RequestService.checkForMisusePattern`), audit-logged
+  and notified to all admins.
+- **Inactive user removal** — daily scheduled sweep
+  (`SystemMaintenanceService`) soft-deactivates accounts with no login in
+  365 days. Administrators are exempt from automatic deactivation.
+- **Scheduled reminders** — daily sweep nudges Homes about requests with no
+  pledges after 7 days, and nudges fulfillers about stalled
+  accepted/in-progress requests after 14 days.
+- **"View Donors" directory** — `GET /api/v1/directory/donors` (Children's
+  Homes only), exposing only name/username/reputation — never contact info.
+- **Delivery method / courier details** — captured on GOODS requests when
+  marking IN_PROGRESS or DELIVERED, matching the SRS class diagram's
+  `Donation.deliveryMethod`/`courierDetails` fields.
+- **Reputation history** — already implicitly satisfied: every `Rating` row
+  *is* a timestamped historical entry; no separate table needed.
+
+### Required new setup for this batch
+
+1. Run `database/010_schema_srs_gaps.sql` on Neon.
+2. Set `STORAGE_ENCRYPTION_KEY` on Render — generate with `openssl rand -base64 32`.
+   **Important**: existing uploaded files were encrypted with the old
+   (insecure default) key baked into `application.yml`. If you set a new
+   key now, previously-uploaded documents will fail to decrypt. For a demo
+   this is fine (re-upload); for anything real, migrate old files before rotating.
+3. No new env vars needed for MFA, failed-login tracking, or scheduled
+   jobs — they use existing SMTP/DB config.

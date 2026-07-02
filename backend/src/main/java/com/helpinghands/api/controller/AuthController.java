@@ -6,6 +6,7 @@ import com.helpinghands.application.dto.ForgotPasswordRequest;
 import com.helpinghands.application.dto.LoginRequest;
 import com.helpinghands.application.dto.RegisterRequest;
 import com.helpinghands.application.dto.ResetPasswordRequest;
+import com.helpinghands.application.dto.VerifyMfaRequest;
 import com.helpinghands.application.service.AuthService;
 import com.helpinghands.application.service.CurrentUserResolver;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,6 +35,15 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
+        String message = Boolean.TRUE.equals(response.mfaRequired())
+                ? "A login code has been sent to your email"
+                : "Login successful";
+        return ResponseEntity.ok(ApiResponse.ok(message, response));
+    }
+
+    @PostMapping("/verify-mfa")
+    public ResponseEntity<ApiResponse<AuthResponse>> verifyMfa(@Valid @RequestBody VerifyMfaRequest request) {
+        AuthResponse response = authService.verifyMfa(request.userId(), request.code());
         return ResponseEntity.ok(ApiResponse.ok("Login successful", response));
     }
 

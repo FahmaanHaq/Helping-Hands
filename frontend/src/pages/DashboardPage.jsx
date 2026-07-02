@@ -6,7 +6,7 @@ import VerificationStatusChart from '../components/VerificationStatusChart.jsx';
 import { getVerificationStats } from '../services/dashboardService';
 import { getMyChildrensHome } from '../services/childrensHomeService';
 import { getMyServiceProvider } from '../services/serviceProviderService';
-import { getMyRequests, browseRequests, getMyPledges } from '../services/requestService';
+import { getMyRequests, browseRequests, getMyPledges, getRecommendedRequests } from '../services/requestService';
 import { listDocuments } from '../services/documentService';
 
 function AdminDashboard() {
@@ -150,7 +150,37 @@ function ServiceProviderDashboard() {
         <Link className="dashboard-tile" to="/service-provider">View Profile & Documents →</Link>
         <Link className="dashboard-tile" to="/requests">Browse Service Requests →</Link>
       </div>
+      <RecommendedRequests />
     </>
+  );
+}
+
+function RecommendedRequests() {
+  const [recommended, setRecommended] = useState(null);
+
+  useEffect(() => {
+    getRecommendedRequests().then(setRecommended).catch(() => setRecommended([]));
+  }, []);
+
+  if (recommended === null) return null;
+  if (recommended.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: '1.5rem' }}>
+      <h2>Recommended For You</h2>
+      <p className="hint-text">Based on categories you&apos;ve pledged to before, ranked by urgency.</p>
+      <div className="request-list">
+        {recommended.map((r) => (
+          <Link key={r.id} to={`/requests/${r.id}`} className="request-row">
+            <div className="request-row-main">
+              <strong>{r.title}</strong>
+              <div className="hint-text">{r.childrensHomeName}</div>
+            </div>
+            <span className={`urgency-pill urgency-${r.urgency.toLowerCase()}`}>{r.urgency}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -178,6 +208,7 @@ function DonorDashboard() {
       <div className="dashboard-actions">
         <Link className="dashboard-tile" to="/requests">Browse Donation Requests →</Link>
       </div>
+      <RecommendedRequests />
     </>
   );
 }
@@ -197,7 +228,7 @@ export default function DashboardPage() {
       {hasRole('ADMINISTRATOR') && <AdminDashboard />}
       {hasRole('CHILDRENS_HOME') && <ChildrensHomeDashboard />}
       {hasRole('SERVICE_PROVIDER') && <ServiceProviderDashboard />}
-      {hasRole('DONOR') && <DonorDashboard />}
+      {(hasRole('DONOR') || hasRole('DELIVERY_VOLUNTEER')) && <DonorDashboard />}
     </div>
   );
 }

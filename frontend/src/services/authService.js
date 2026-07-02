@@ -2,7 +2,12 @@ import api from './api';
 
 export async function login(usernameOrEmail, password) {
   const { data } = await api.post('/auth/login', { usernameOrEmail, password });
-  return data.data; // ApiResponse envelope -> AuthResponse payload
+  return data.data; // ApiResponse envelope -> AuthResponse payload (may have mfaRequired: true)
+}
+
+export async function verifyMfa(userId, code) {
+  const { data } = await api.post('/auth/verify-mfa', { userId, code });
+  return data.data;
 }
 
 export async function register(payload) {

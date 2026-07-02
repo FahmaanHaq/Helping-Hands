@@ -21,6 +21,8 @@ public record RequestResponse(
         String cancellationReason,
         Boolean flagged,
         String flagReason,
+        com.helpinghands.domain.entity.DeliveryMethod deliveryMethod,
+        String courierDetails,
         LocalDateTime createdDate
 ) {
 }
