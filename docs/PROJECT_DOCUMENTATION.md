@@ -441,17 +441,17 @@ Honest, in priority order if this ever needs to handle real load:
    — HikariCP defaults are fine for a demo, not for sustained high concurrency.
 4. **CDN in front of the frontend** — Vercel already does this; if
    self-hosting via the VPS path, add Cloudflare or similar in front of Caddy.
-5. **Async email sending** — currently synchronous inside the request
-   thread (`SmtpEmailService.send` catches and logs failures but still
-   blocks). A queue (even a simple `@Async` + retry) would decouple
-   registration/reset latency from SMTP provider latency.
-6. **Database indexing is already in place** for the columns that matter
+5. **Database indexing is already in place** for the columns that matter
    today (status, category, owner lookups) — revisit with real query plans
    (`EXPLAIN ANALYZE`) once there's production traffic to profile.
-7. **Horizontal scaling of the API itself** is already low-friction: JWT
+6. **Horizontal scaling of the API itself** is already low-friction: JWT
    auth is stateless, so adding more backend instances behind a load
    balancer needs no session-affinity — the only current blocker to true
    multi-instance operation is items 1 and 2 above.
+
+*(Async email sending, originally listed here as a suggestion, is now
+implemented — see Section 8/9 above and `SmtpEmailService`'s `@Async`
+methods. A hung SMTP connection can no longer block an API request.)*
 
 ---
 

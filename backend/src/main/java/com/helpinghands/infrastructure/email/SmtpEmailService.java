@@ -6,10 +6,21 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import jakarta.mail.internet.MimeMessage;
 
+/**
+ * Every send here is @Async: the calling HTTP request (register,
+ * resend-verification, forgot-password) returns as soon as the token is
+ * issued, without waiting on SMTP at all. This is what actually fixes a
+ * slow/unreachable mail server appearing as a frontend request that never
+ * resolves — previously the whole HTTP call blocked on mailSender.send().
+ * Combined with the SMTP timeouts in application.yml, a failure here is now
+ * fully isolated: it can only ever show up in the server logs, never as a
+ * hung request in the browser.
+ */
 @Service
 @RequiredArgsConstructor
 public class SmtpEmailService implements EmailService {
@@ -22,6 +33,7 @@ public class SmtpEmailService implements EmailService {
     private String fromAddress;
 
     @Override
+    @Async
     public void sendVerificationEmail(String toEmail, String recipientName, String verificationLink) {
         String subject = "Verify your Helping Hands account";
         String body = """
@@ -34,6 +46,7 @@ public class SmtpEmailService implements EmailService {
     }
 
     @Override
+    @Async
     public void sendPasswordResetEmail(String toEmail, String recipientName, String resetLink) {
         String subject = "Reset your Helping Hands password";
         String body = """

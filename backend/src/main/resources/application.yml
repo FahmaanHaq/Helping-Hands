@@ -41,6 +41,14 @@ spring:
           auth: true
           starttls:
             enable: true
+          # Without these, an unreachable/slow SMTP server hangs the calling
+          # HTTP request indefinitely (no default timeout exists) — that's
+          # what caused the "Sending..." button to never resolve. 10s is
+          # generous for a real SMTP handshake; a legitimate server responds
+          # in well under a second.
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
 
 mail:
   from-address: ${MAIL_FROM_ADDRESS:no-reply@helpinghands.local}
