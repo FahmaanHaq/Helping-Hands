@@ -720,3 +720,28 @@ body {
 @media (max-width: 800px) {
   .two-col-charts { grid-template-columns: 1fr; }
 }
+
+.verify-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #fdf1dc;
+  color: #8a6d00;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #f0dcae;
+}
+
+.verify-banner button {
+  margin-left: auto;
+  padding: 0.35rem 0.8rem;
+  background: #8a6d00;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.verify-banner button:disabled { opacity: 0.6; cursor: not-allowed; }

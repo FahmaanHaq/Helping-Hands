@@ -52,6 +52,8 @@ export default function LoginPage() {
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
 
+        <p><Link to="/forgot-password">Forgot your password?</Link></p>
+
         <p>
           No account? <Link to="/register">Register here</Link>
         </p>

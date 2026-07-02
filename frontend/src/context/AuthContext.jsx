@@ -22,12 +22,14 @@ export function AuthProvider({ children }) {
     localStorage.setItem('hh_user', JSON.stringify({
       userId: authResponse.userId,
       username: authResponse.username,
-      roles: authResponse.roles
+      roles: authResponse.roles,
+      emailVerified: authResponse.emailVerified
     }));
     setUser({
       userId: authResponse.userId,
       username: authResponse.username,
-      roles: authResponse.roles
+      roles: authResponse.roles,
+      emailVerified: authResponse.emailVerified
     });
   };
 
@@ -72,9 +74,18 @@ export function AuthProvider({ children }) {
     [user]
   );
 
+  const markEmailVerified = useCallback(() => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, emailVerified: true };
+      localStorage.setItem('hh_user', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   const value = useMemo(
-    () => ({ user, loading, error, login, register, logout, hasRole }),
-    [user, loading, error, login, register, logout, hasRole]
+    () => ({ user, loading, error, login, register, logout, hasRole, markEmailVerified }),
+    [user, loading, error, login, register, logout, hasRole, markEmailVerified]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

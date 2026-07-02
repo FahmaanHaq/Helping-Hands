@@ -6,7 +6,9 @@ import com.helpinghands.application.dto.LoginRequest;
 import com.helpinghands.application.dto.RegisterRequest;
 import com.helpinghands.domain.entity.Role;
 import com.helpinghands.domain.entity.RoleName;
+import com.helpinghands.domain.entity.TokenType;
 import com.helpinghands.domain.entity.User;
+import com.helpinghands.infrastructure.email.EmailService;
 import com.helpinghands.infrastructure.repository.RoleRepository;
 import com.helpinghands.infrastructure.repository.UserRepository;
 import com.helpinghands.infrastructure.security.JwtService;
@@ -29,15 +31,23 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private static final long EMAIL_VERIFICATION_VALIDITY_MINUTES = 24 * 60;
+    private static final long PASSWORD_RESET_VALIDITY_MINUTES = 60;
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final AuditLogService auditLogService;
+    private final TokenService tokenService;
+    private final EmailService emailService;
 
     @Value("${security.admin-bootstrap-secret}")
     private String adminBootstrapSecret;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -63,11 +73,12 @@ public class AuthService {
         // that check lives in those modules, not here.
 
         User saved = userRepository.save(user);
+        sendVerificationEmail(saved);
 
         List<String> roleNames = List.of("ROLE_" + role.getName().name());
         String token = jwtService.generateToken(new UserPrincipal(saved));
 
-        return new AuthResponse(token, saved.getId(), saved.getUsername(), roleNames);
+        return new AuthResponse(token, saved.getId(), saved.getUsername(), roleNames, saved.getEmailVerified());
     }
 
     @Transactional
@@ -97,12 +108,13 @@ public class AuthService {
         user.setPhoneNumber(request.phoneNumber());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRoles(Set.of(adminRole));
+        user.setEmailVerified(true); // administrators are provisioned, not self-registered — skip the email hoop
 
         User saved = userRepository.save(user);
         auditLogService.record("ADMIN_PROVISIONED", "USER", saved.getId(), "New Administrator account: " + saved.getUsername());
 
         String token = jwtService.generateToken(new UserPrincipal(saved));
-        return new AuthResponse(token, saved.getId(), saved.getUsername(), List.of("ROLE_ADMINISTRATOR"));
+        return new AuthResponse(token, saved.getId(), saved.getUsername(), List.of("ROLE_ADMINISTRATOR"), true);
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -119,6 +131,56 @@ public class AuthService {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        return new AuthResponse(token, user.getId(), user.getUsername(), roleNames);
+        return new AuthResponse(token, user.getId(), user.getUsername(), roleNames, user.getEmailVerified());
+    }
+
+    @Transactional
+    public void resendVerificationEmail(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException("User not found", HttpStatus.NOT_FOUND));
+
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new ApiException("This email is already verified", HttpStatus.CONFLICT);
+        }
+        sendVerificationEmail(user);
+    }
+
+    @Transactional
+    public void verifyEmail(String rawToken) {
+        User user = tokenService.consumeToken(rawToken, TokenType.EMAIL_VERIFICATION)
+                .orElseThrow(() -> new ApiException("This verification link is invalid or has expired", HttpStatus.BAD_REQUEST));
+
+        user.setEmailVerified(true);
+        userRepository.save(user);
+    }
+
+    /**
+     * Deliberately returns void and never reveals whether the email exists —
+     * responding identically either way prevents using this endpoint to
+     * enumerate registered accounts.
+     */
+    @Transactional
+    public void forgotPassword(String email) {
+        userRepository.findByEmailAndIsActiveTrue(email).ifPresent(user -> {
+            String rawToken = tokenService.issueToken(user, TokenType.PASSWORD_RESET, PASSWORD_RESET_VALIDITY_MINUTES);
+            String resetLink = frontendUrl + "/reset-password?token=" + rawToken;
+            emailService.sendPasswordResetEmail(user.getEmail(), user.getFullName(), resetLink);
+        });
+    }
+
+    @Transactional
+    public void resetPassword(String rawToken, String newPassword) {
+        User user = tokenService.consumeToken(rawToken, TokenType.PASSWORD_RESET)
+                .orElseThrow(() -> new ApiException("This reset link is invalid or has expired", HttpStatus.BAD_REQUEST));
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        auditLogService.record("PASSWORD_RESET", "USER", user.getId(), null);
+    }
+
+    private void sendVerificationEmail(User user) {
+        String rawToken = tokenService.issueToken(user, TokenType.EMAIL_VERIFICATION, EMAIL_VERIFICATION_VALIDITY_MINUTES);
+        String verificationLink = frontendUrl + "/verify-email?token=" + rawToken;
+        emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), verificationLink);
     }
 }

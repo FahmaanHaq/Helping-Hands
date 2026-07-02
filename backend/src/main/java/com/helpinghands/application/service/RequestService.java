@@ -6,6 +6,7 @@ import com.helpinghands.domain.entity.*;
 import com.helpinghands.infrastructure.repository.ChildrensHomeRepository;
 import com.helpinghands.infrastructure.repository.RequestRepository;
 import com.helpinghands.infrastructure.repository.RequestStatusHistoryRepository;
+import com.helpinghands.infrastructure.repository.ServiceProviderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ public class RequestService {
     private final RequestRepository requestRepository;
     private final RequestStatusHistoryRepository historyRepository;
     private final ChildrensHomeRepository childrensHomeRepository;
+    private final ServiceProviderRepository serviceProviderRepository;
     private final CurrentUserResolver currentUserResolver;
     private final RatingService ratingService;
 
@@ -188,10 +190,18 @@ public class RequestService {
         boolean authorized = switch (to) {
             case PLEDGED -> {
                 // Must NOT be the owning home, and role must match the request type.
-                boolean roleMatches = request.isGoods()
-                        ? user.getRoles().stream().anyMatch(r -> r.getName() == RoleName.DONOR)
-                        : user.getRoles().stream().anyMatch(r -> r.getName() == RoleName.SERVICE_PROVIDER);
-                yield !isOwningHome && roleMatches;
+                if (isOwningHome) yield false;
+                if (request.isGoods()) {
+                    yield user.getRoles().stream().anyMatch(r -> r.getName() == RoleName.DONOR);
+                }
+                // SERVICE requests: role alone isn't enough — the provider profile
+                // itself must be APPROVED and, if police clearance is required,
+                // verified. Unverified providers must never be able to pledge.
+                boolean isServiceProvider = user.getRoles().stream().anyMatch(r -> r.getName() == RoleName.SERVICE_PROVIDER);
+                if (!isServiceProvider) yield false;
+                yield serviceProviderRepository.findByUserId(user.getId())
+                        .map(ServiceProvider::isEligibleToOfferServices)
+                        .orElse(false);
             }
             case ACCEPTED -> isOwningHome;
             case IN_PROGRESS -> isPledgedUser || isOwningHome;

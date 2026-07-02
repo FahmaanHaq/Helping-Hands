@@ -7,9 +7,10 @@ public record AuthResponse(
         String tokenType,
         Long userId,
         String username,
-        List<String> roles
+        List<String> roles,
+        Boolean emailVerified
 ) {
-    public AuthResponse(String accessToken, Long userId, String username, List<String> roles) {
-        this(accessToken, "Bearer", userId, username, roles);
+    public AuthResponse(String accessToken, Long userId, String username, List<String> roles, Boolean emailVerified) {
+        this(accessToken, "Bearer", userId, username, roles, emailVerified);
     }
 }

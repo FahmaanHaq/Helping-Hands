@@ -30,6 +30,27 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+mail:
+  from-address: ${MAIL_FROM_ADDRESS:no-reply@helpinghands.local}
+
+app:
+  # Used to build email verification / password reset links. Must be the
+  # actual deployed frontend origin (e.g. https://helping-hands.vercel.app)
+  # in every environment except local dev.
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+
 storage:
   local:
     # WARNING: on hosts with an ephemeral filesystem (e.g. Render's free tier),

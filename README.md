@@ -122,6 +122,48 @@ verification approved/rejected, request pledged, etc.) is not built yet.
 Status changes are currently silent until someone refreshes the page. That's
 explicitly the next planned piece of work.
 
+## Bug fix: unverified Service Providers could pledge
+
+Found while reviewing the spec's "prevent unverified providers from offering
+services" rule: the pledge check only verified the *role* (`SERVICE_PROVIDER`),
+not whether that provider's own profile was actually `APPROVED` or had police
+clearance verified where required. A rejected or still-pending provider could
+pledge to a SERVICE request. Fixed in `RequestService` — pledging to a
+SERVICE request now also calls `ServiceProvider.isEligibleToOfferServices()`.
+Donors are unaffected (they're never subject to a verification workflow by
+design).
+
+## Email Verification & Forgot Password
+
+- **Real SMTP email sending** via `spring-boot-starter-mail`, not just token
+  generation with nowhere for it to go. `EmailService` is an interface
+  (`SmtpEmailService` the only implementation today) so swapping in a
+  transactional email provider (SendGrid, SES, Postmark) later is additive.
+- **Shared `VerificationToken` table** for both email verification and
+  password reset — same shape, different `TokenType`. Tokens are stored as
+  a SHA-256 hash, never in plaintext, mirroring how passwords are handled.
+  Requesting a new token invalidates any previous unused one of that type.
+- Email verification: 24-hour expiry. Password reset: 1-hour expiry
+  (shorter, since a compromised reset link is more immediately dangerous).
+- **Login is not gated on email verification** — a deliberate product
+  choice to reduce friction; unverified users see a persistent banner
+  (`EmailVerificationBanner`) with a resend option instead of being locked
+  out. Change this in `SecurityConfig`/`AuthService` if you'd rather block
+  login entirely until verified.
+- **Forgot-password never reveals whether an email exists** — the endpoint
+  returns the same response either way, and only sends an email if a match
+  is found. This is the same enumeration-prevention principle already used
+  for login failures.
+- Administrator accounts (via `/register-admin`) are marked verified
+  immediately — they're provisioned, not self-registered, so there's no
+  inbox to confirm.
+
+**Required setup**: you need real SMTP credentials for this to work. See
+`backend/.env.example` for the `MAIL_*` variables and a couple of free
+options (Gmail App Password, Brevo's free SMTP tier). Without them, the
+app still runs — sends just fail silently into the logs rather than
+blocking registration.
+
 ## Reputation & Feedback module
 
 - Children's Homes rate the Donor/Service Provider who fulfilled a request,

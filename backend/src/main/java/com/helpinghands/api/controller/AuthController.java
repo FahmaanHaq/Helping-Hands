@@ -2,9 +2,12 @@ package com.helpinghands.api.controller;
 
 import com.helpinghands.application.dto.ApiResponse;
 import com.helpinghands.application.dto.AuthResponse;
+import com.helpinghands.application.dto.ForgotPasswordRequest;
 import com.helpinghands.application.dto.LoginRequest;
 import com.helpinghands.application.dto.RegisterRequest;
+import com.helpinghands.application.dto.ResetPasswordRequest;
 import com.helpinghands.application.service.AuthService;
+import com.helpinghands.application.service.CurrentUserResolver;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,22 +18,48 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentication", description = "Registration, login and token issuance")
+@Tag(name = "Authentication", description = "Registration, login, token issuance, email verification and password reset")
 public class AuthController {
 
     private final AuthService authService;
+    private final CurrentUserResolver currentUserResolver;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Registration successful", response));
+                .body(ApiResponse.ok("Registration successful. Check your email to verify your account.", response));
     }
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(ApiResponse.ok("Login successful", response));
+    }
+
+    @GetMapping("/verify-email")
+    public ApiResponse<Void> verifyEmail(@RequestParam String token) {
+        authService.verifyEmail(token);
+        return ApiResponse.ok("Email verified successfully", null);
+    }
+
+    @PostMapping("/resend-verification")
+    public ApiResponse<Void> resendVerification() {
+        authService.resendVerificationEmail(currentUserResolver.getCurrentUser().getId());
+        return ApiResponse.ok("Verification email sent", null);
+    }
+
+    @PostMapping("/forgot-password")
+    public ApiResponse<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.email());
+        // Same response whether or not the email exists — see AuthService.forgotPassword.
+        return ApiResponse.ok("If an account exists for that email, a reset link has been sent.", null);
+    }
+
+    @PostMapping("/reset-password")
+    public ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.token(), request.newPassword());
+        return ApiResponse.ok("Password reset successfully. You can now log in.", null);
     }
 
     /**
