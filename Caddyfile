@@ -1,0 +1,13 @@
+# Replace with your real domain. Caddy fetches and renews the TLS
+# certificate automatically via Let's Encrypt — no certbot, no manual renewal.
+your-domain.com {
+    # API traffic goes to the Spring Boot container
+    handle /api/* {
+        reverse_proxy backend:8080
+    }
+
+    # Everything else is the React SPA
+    handle {
+        reverse_proxy frontend:80
+    }
+}
