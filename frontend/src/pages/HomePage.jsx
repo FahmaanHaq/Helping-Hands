@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, HeartHandshake, Truck, FilePlus, Search, Handshake, CheckCircle2 } from 'lucide-react';
+import { Package, HeartHandshake, Truck, FilePlus, Search, Handshake, CheckCircle2, LogIn } from 'lucide-react';
 import Logomark from '../components/Logomark.jsx';
+import HeroNetwork from '../components/HeroNetwork.jsx';
 import { getFeaturedRequests } from '../services/publicService';
 
 const HOW_IT_WORKS = [
@@ -39,59 +40,73 @@ export default function HomePage() {
   return (
     <div className="public-page">
       <header className="public-nav">
-        <div className="public-nav-brand">
-          <Logomark size={24} />
-          <span>Helping Hands</span>
-        </div>
-        <div className="public-nav-links">
-          <Link to="/login">Login / Signup</Link>
+        <div className="public-container public-nav-inner">
+          <div className="public-nav-brand">
+            <Logomark size={24} />
+            <span>Helping Hands</span>
+          </div>
+          <Link to="/login" className="btn-nav-cta">
+            <LogIn size={16} />
+            Login / Signup
+          </Link>
         </div>
       </header>
 
       <section className="public-hero">
-        <h1>Connecting Communities Through Compassion</h1>
-        <p>
-          A platform that coordinates goods, services, and delivery volunteers to support
-          children&apos;s homes. Transparent, verified, and accountable at every step.
-        </p>
-        <div className="public-hero-ctas">
-          <Link to="/register" className="btn-primary">
-            <Package size={16} /> Donate Goods
-          </Link>
-          <Link to="/register" className="btn-secondary">
-            <HeartHandshake size={16} /> Offer Services
-          </Link>
-          <Link to="/register" className="btn-secondary">
-            <Truck size={16} /> Volunteer for Delivery
-          </Link>
+        <HeroNetwork />
+        <div className="public-container public-hero-inner">
+          <h1>Connecting Communities Through Compassion</h1>
+          <p>
+            A platform that coordinates goods, services, and delivery volunteers to support
+            children&apos;s homes. Transparent, verified, and accountable at every step.
+          </p>
+          <div className="public-hero-ctas">
+            <Link to="/register" className="btn-primary">
+              <Package size={16} /> Donate Goods
+            </Link>
+            <Link to="/register" className="btn-secondary">
+              <HeartHandshake size={16} /> Offer Services
+            </Link>
+            <Link to="/register" className="btn-secondary">
+              <Truck size={16} /> Volunteer for Delivery
+            </Link>
+          </div>
         </div>
       </section>
 
       <section className="public-section">
-        <h2>Featured Requests</h2>
-        <p className="hint-text">Help fulfil these needs from children&apos;s homes</p>
+        <div className="public-container">
+          <h2>Featured Requests</h2>
+          <p className="hint-text">Help fulfil these needs from children&apos;s homes</p>
 
-        {featured === null ? (
-          <p className="hint-text">Loading…</p>
-        ) : featured.length === 0 ? (
-          <p className="hint-text">No open requests right now — check back soon.</p>
-        ) : (
-          <div className="featured-grid">
-            {featured.map((r) => <FeaturedCard key={r.id} request={r} />)}
-          </div>
-        )}
+          {featured === null ? (
+            <p className="hint-text">Loading…</p>
+          ) : featured.length === 0 ? (
+            <div className="featured-empty">
+              <p className="hint-text">No open requests right now — check back soon.</p>
+            </div>
+          ) : (
+            <div className="featured-grid">
+              {featured.map((r) => <FeaturedCard key={r.id} request={r} />)}
+            </div>
+          )}
+        </div>
       </section>
 
-      <section className="public-section public-how-it-works">
-        <h2 style={{ textAlign: 'center' }}>How It Works</h2>
-        <div className="how-it-works-grid">
-          {HOW_IT_WORKS.map((step, i) => (
-            <div key={i} className="how-it-works-step">
-              <div className="how-it-works-icon"><step.icon size={22} /></div>
-              <strong>{step.title}</strong>
-              <p className="hint-text">{step.text}</p>
+      <section className="public-section">
+        <div className="public-container">
+          <div className="public-how-it-works">
+            <h2 style={{ textAlign: 'center' }}>How It Works</h2>
+            <div className="how-it-works-grid">
+              {HOW_IT_WORKS.map((step, i) => (
+                <div key={i} className="how-it-works-step">
+                  <div className="how-it-works-icon"><step.icon size={22} /></div>
+                  <strong>{step.title}</strong>
+                  <p className="hint-text">{step.text}</p>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </section>
     </div>
