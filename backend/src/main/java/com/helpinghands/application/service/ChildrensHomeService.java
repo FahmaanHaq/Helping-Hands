@@ -24,6 +24,7 @@ public class ChildrensHomeService {
 
     private final ChildrensHomeRepository childrensHomeRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public ChildrensHomeResponse register(ChildrensHomeRegistrationRequest request) {
@@ -80,7 +81,12 @@ public class ChildrensHomeService {
         home.setReviewedBy(SecurityContextHolder.getContext().getAuthentication().getName());
         home.setReviewedDate(LocalDateTime.now());
 
-        return toResponse(childrensHomeRepository.save(home));
+        ChildrensHome saved = childrensHomeRepository.save(home);
+        auditLogService.record(
+                "VERIFICATION_" + decision.decision(), "CHILDRENS_HOME", home.getId(),
+                decision.decision() == VerificationStatus.REJECTED ? decision.rejectionReason() : null);
+
+        return toResponse(saved);
     }
 
     private ChildrensHomeResponse toResponse(ChildrensHome home) {

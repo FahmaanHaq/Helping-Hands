@@ -24,6 +24,7 @@ public class RequestService {
     private final RequestStatusHistoryRepository historyRepository;
     private final ChildrensHomeRepository childrensHomeRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final RatingService ratingService;
 
     @Transactional
     public RequestResponse create(CreateRequestRequest req) {
@@ -126,10 +127,15 @@ public class RequestService {
         RequestStatus from = request.getStatus();
         RequestStatus to = change.status();
 
-        assertLegalTransition(from, to);
+        assertLegalTransition(from, to, isAdmin(user));
         assertAuthorizedForTransition(request, user, from, to);
 
         if (to == RequestStatus.PLEDGED) {
+            if (ratingService.isUserRestricted(user.getId())) {
+                throw new ApiException(
+                        "Your reputation score is too low to pledge to new requests. Contact an administrator.",
+                        HttpStatus.FORBIDDEN);
+            }
             request.setPledgedBy(user);
         }
         if (to == RequestStatus.CANCELLED) {
@@ -147,7 +153,12 @@ public class RequestService {
 
     private static final Set<RequestStatus> CANCELLABLE_FROM = Set.of(RequestStatus.CREATED, RequestStatus.PLEDGED);
 
-    private void assertLegalTransition(RequestStatus from, RequestStatus to) {
+    private void assertLegalTransition(RequestStatus from, RequestStatus to, boolean isAdmin) {
+        if (isAdmin && to == RequestStatus.CANCELLED
+                && from != RequestStatus.COMPLETED && from != RequestStatus.CANCELLED) {
+            return; // admin dispute-resolution override: cancel from any non-terminal status
+        }
+
         boolean legal = switch (from) {
             case CREATED -> to == RequestStatus.PLEDGED || to == RequestStatus.CANCELLED;
             case PLEDGED -> to == RequestStatus.ACCEPTED || to == RequestStatus.CANCELLED;
@@ -161,6 +172,10 @@ public class RequestService {
                     "Cannot move a request from " + from + " to " + to,
                     HttpStatus.CONFLICT);
         }
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRoles().stream().anyMatch(r -> r.getName() == RoleName.ADMINISTRATOR);
     }
 
     private void assertAuthorizedForTransition(Request request, User user, RequestStatus from, RequestStatus to) {
@@ -230,6 +245,7 @@ public class RequestService {
                 r.getQuantity(),
                 r.getUrgency(),
                 r.getStatus(),
+                r.getPledgedBy() != null ? r.getPledgedBy().getId() : null,
                 r.getPledgedBy() != null ? r.getPledgedBy().getUsername() : null,
                 r.getCancellationReason(),
                 r.getCreatedDate()

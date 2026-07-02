@@ -25,6 +25,7 @@ public class ServiceProviderService {
 
     private final ServiceProviderRepository serviceProviderRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public ServiceProviderResponse register(ServiceProviderRegistrationRequest request) {
@@ -99,7 +100,12 @@ public class ServiceProviderService {
         provider.setReviewedBy(SecurityContextHolder.getContext().getAuthentication().getName());
         provider.setReviewedDate(LocalDateTime.now());
 
-        return toResponse(serviceProviderRepository.save(provider));
+        ServiceProvider saved = serviceProviderRepository.save(provider);
+        auditLogService.record(
+                "VERIFICATION_" + decision.decision(), "SERVICE_PROVIDER", provider.getId(),
+                decision.decision() == VerificationStatus.REJECTED ? decision.rejectionReason() : null);
+
+        return toResponse(saved);
     }
 
     private ServiceProviderResponse toResponse(ServiceProvider provider) {

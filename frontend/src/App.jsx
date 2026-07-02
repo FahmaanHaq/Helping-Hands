@@ -8,6 +8,9 @@ import UnauthorizedPage from './pages/UnauthorizedPage.jsx';
 import ChildrensHomeRegisterPage from './pages/ChildrensHomeRegisterPage.jsx';
 import ServiceProviderRegisterPage from './pages/ServiceProviderRegisterPage.jsx';
 import AdminVerificationPage from './pages/AdminVerificationPage.jsx';
+import AdminUsersPage from './pages/AdminUsersPage.jsx';
+import AdminAuditLogPage from './pages/AdminAuditLogPage.jsx';
+import AdminReportsPage from './pages/AdminReportsPage.jsx';
 import CreateRequestPage from './pages/CreateRequestPage.jsx';
 import RequestsListPage from './pages/RequestsListPage.jsx';
 import RequestDetailPage from './pages/RequestDetailPage.jsx';
@@ -85,6 +88,33 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={['ADMINISTRATOR']}>
             <Shell><AdminVerificationPage /></Shell>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute allowedRoles={['ADMINISTRATOR']}>
+            <Shell><AdminUsersPage /></Shell>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/audit-log"
+        element={
+          <ProtectedRoute allowedRoles={['ADMINISTRATOR']}>
+            <Shell><AdminAuditLogPage /></Shell>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/reports"
+        element={
+          <ProtectedRoute allowedRoles={['ADMINISTRATOR']}>
+            <Shell><AdminReportsPage /></Shell>
           </ProtectedRoute>
         }
       />

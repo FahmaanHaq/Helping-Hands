@@ -5,6 +5,8 @@ import { getRequest, getRequestHistory, changeRequestStatus } from '../services/
 import { listDocuments, downloadDocument } from '../services/documentService';
 import RequestStatusBadge from '../components/RequestStatusBadge.jsx';
 import DocumentUploadWidget from '../components/DocumentUploadWidget.jsx';
+import RatingWidget from '../components/RatingWidget.jsx';
+import ReputationBadge from '../components/ReputationBadge.jsx';
 
 function getAvailableActions(request, user, hasRole) {
   const actions = [];
@@ -135,7 +137,13 @@ export default function RequestDetailPage() {
         <div className="profile-row"><span>Urgency</span><strong>{request.urgency}</strong></div>
         {request.description && <div className="profile-row"><span>Description</span><strong>{request.description}</strong></div>}
         {request.pledgedByUsername && (
-          <div className="profile-row"><span>Pledged By</span><strong>{request.pledgedByUsername}</strong></div>
+          <div className="profile-row">
+            <span>Pledged By</span>
+            <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <strong>{request.pledgedByUsername}</strong>
+              <ReputationBadge userId={request.pledgedByUserId} />
+            </span>
+          </div>
         )}
         {request.status === 'CANCELLED' && request.cancellationReason && (
           <p className="form-error">Cancelled: {request.cancellationReason}</p>
@@ -165,6 +173,14 @@ export default function RequestDetailPage() {
           <RequestImageGallery requestId={request.id} />
         )}
       </div>
+
+      {request.status === 'COMPLETED' && (
+        <RatingWidget
+          requestId={request.id}
+          canRate={hasRole('CHILDRENS_HOME')}
+          pledgedByUsername={request.pledgedByUsername}
+        />
+      )}
 
       <div className="status-timeline">
         <h3>Status History</h3>

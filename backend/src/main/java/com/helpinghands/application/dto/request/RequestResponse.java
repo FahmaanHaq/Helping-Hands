@@ -16,6 +16,7 @@ public record RequestResponse(
         Integer quantity,
         UrgencyLevel urgency,
         RequestStatus status,
+        Long pledgedByUserId,
         String pledgedByUsername,
         String cancellationReason,
         LocalDateTime createdDate

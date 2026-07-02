@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -30,6 +32,14 @@ public class GlobalExceptionHandler {
         // Deliberately generic message: never reveal whether username or password was wrong.
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error("Invalid username/email or password"));
+    }
+
+    @ExceptionHandler({LockedException.class, DisabledException.class})
+    public ResponseEntity<ApiResponse<Void>> handleAccountRestricted(RuntimeException ex) {
+        // Unlike bad-credentials, there's no enumeration concern here — the person
+        // already has a valid account, they just need to know why they're blocked.
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error("This account has been suspended. Contact an administrator."));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

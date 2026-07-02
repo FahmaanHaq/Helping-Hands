@@ -48,13 +48,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                if (jwtService.isTokenValid(jwt, userDetails)) {
+                if (jwtService.isTokenValid(jwt, userDetails)
+                        && userDetails.isAccountNonLocked() && userDetails.isEnabled()) {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
                                     userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
+                // If the account was suspended after this token was issued, the token
+                // itself still validates but we deliberately leave the security context
+                // unauthenticated here — the request falls through to a 401/403 rather
+                // than being treated as a valid session.
             }
         } catch (JwtException | IllegalArgumentException ex) {
             // Invalid/expired token: leave context unauthenticated, let entry point handle 401.

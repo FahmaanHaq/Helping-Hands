@@ -53,6 +53,15 @@ public class User extends BaseEntity {
     @Column(name = "account_locked", nullable = false)
     private Boolean accountLocked = false;
 
+    @Column(name = "suspension_reason", length = 500)
+    private String suspensionReason;
+
+    @Column(name = "suspended_by", length = 150)
+    private String suspendedBy;
+
+    @Column(name = "suspended_date")
+    private java.time.LocalDateTime suspendedDate;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",

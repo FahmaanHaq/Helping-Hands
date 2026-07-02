@@ -20,4 +20,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
 
     boolean existsByUsername(String username);
+
+    @Query("SELECT u FROM User u WHERE " +
+           "LOWER(u.username) LIKE LOWER(CONCAT('%', :term, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :term, '%')) OR " +
+           "LOWER(u.fullName) LIKE LOWER(CONCAT('%', :term, '%'))")
+    org.springframework.data.domain.Page<User> search(@Param("term") String term, org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT COUNT(DISTINCT u) FROM User u JOIN u.roles r WHERE r.name = :roleName")
+    long countByRoleName(@Param("roleName") com.helpinghands.domain.entity.RoleName roleName);
+
+    long countByAccountLockedTrue();
 }

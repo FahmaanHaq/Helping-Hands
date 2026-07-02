@@ -1,7 +1,8 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Home, HardHat, ShieldCheck, PackageSearch, LogOut, X
+  LayoutDashboard, Home, HardHat, ShieldCheck, PackageSearch, LogOut, X,
+  Users, ScrollText, BarChart3
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import Logomark from '../Logomark.jsx';
@@ -75,6 +76,18 @@ export default function Sidebar({ open, onClose }) {
               <NavLink to="/requests" className={linkClass} onClick={onClose}>
                 <PackageSearch size={18} />
                 <span>All Requests</span>
+              </NavLink>
+              <NavLink to="/admin/users" className={linkClass} onClick={onClose}>
+                <Users size={18} />
+                <span>User Management</span>
+              </NavLink>
+              <NavLink to="/admin/reports" className={linkClass} onClick={onClose}>
+                <BarChart3 size={18} />
+                <span>Reports</span>
+              </NavLink>
+              <NavLink to="/admin/audit-log" className={linkClass} onClick={onClose}>
+                <ScrollText size={18} />
+                <span>Audit Log</span>
               </NavLink>
             </>
           )}

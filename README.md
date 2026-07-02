@@ -117,9 +117,57 @@ Suggested build order, given the dependencies between modules:
 
 ## Not included yet (by design, per your chosen scope)
 
-Donation/service requests, request lifecycle tracking, reputation, reports,
-and admin moderation (suspend/ban) screens are **not** in this slice — they're
-the next pieces of work, built on exactly this foundation.
+The **Notification system** (spec calls for notifications on status changes —
+verification approved/rejected, request pledged, etc.) is not built yet.
+Status changes are currently silent until someone refreshes the page. That's
+explicitly the next planned piece of work.
+
+## Reputation & Feedback module
+
+- Children's Homes rate the Donor/Service Provider who fulfilled a request,
+  but only after it reaches `COMPLETED`, and only once per request
+  (`POST /api/v1/requests/{id}/rating`, 1–5 stars + optional comment).
+- Reputation is computed on read (`GET /api/v1/users/{userId}/reputation`)
+  rather than stored as a running total — simpler and always correct, at the
+  cost of an aggregate query per lookup. Fine at this scale; revisit if this
+  table ever gets large.
+- **Low-reputation restriction**: a user with 3+ ratings and an average
+  below 2.5 is blocked from pledging to new requests
+  (`RatingService.MIN_RATINGS_FOR_RESTRICTION` / `MIN_AVERAGE_SCORE`) —
+  enforced server-side in `RequestService`, not just hidden in the UI.
+
+## Admin Oversight & Moderation
+
+- **Suspend / reinstate accounts** — `PATCH /api/v1/admin/users/{id}/suspend`
+  and `/reinstate`. A suspended account can't log in (`LockedException` is
+  now handled distinctly in `GlobalExceptionHandler`) and — importantly —
+  an *already-issued* JWT stops working immediately too, since
+  `JwtAuthenticationFilter` now re-checks `isAccountNonLocked()` /
+  `isEnabled()` on every request, not just at login.
+- Administrator accounts can't be suspended through this endpoint, and you
+  can't suspend yourself — both throw a 403/400 rather than silently no-op'ing.
+- **Dispute resolution**: Administrators can cancel a request from *any*
+  non-terminal status (not just `CREATED`/`PLEDGED` like a normal home can),
+  via the same `PATCH /api/v1/requests/{id}/status` endpoint everyone else
+  uses — one override rule in `RequestService`, not a parallel admin-only path.
+- **Audit log** — `AuditLogEntry` is an intentionally minimal, append-only
+  table (no soft-delete columns — an audit trail that can be edited isn't
+  one). Currently logged: verification approvals/rejections, user
+  suspensions/reinstatements, and admin account provisioning.
+  `GET /api/v1/admin/audit-log` for the read-only view.
+
+## Reports & Dashboard
+
+- `GET /api/v1/admin/reports/summary` — request counts by type/status,
+  user counts by role, suspended-user count, and platform-wide average
+  rating, all in one call.
+- **CSV export** of all requests (`GET /api/v1/admin/reports/requests/export`)
+  — opens natively in Excel/Sheets, satisfying the spec's "Excel export"
+  requirement. **PDF export is not implemented** — flagging that honestly
+  rather than half-building it; adding a PDF library later is additive, not
+  a rework of this controller.
+- Reports page includes two pie charts (request type breakdown, request
+  outcome breakdown) alongside the stat cards.
 
 ## Document Upload module (added)
 

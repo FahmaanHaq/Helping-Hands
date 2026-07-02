@@ -34,6 +34,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final AuditLogService auditLogService;
 
     @Value("${security.admin-bootstrap-secret}")
     private String adminBootstrapSecret;
@@ -98,6 +99,7 @@ public class AuthService {
         user.setRoles(Set.of(adminRole));
 
         User saved = userRepository.save(user);
+        auditLogService.record("ADMIN_PROVISIONED", "USER", saved.getId(), "New Administrator account: " + saved.getUsername());
 
         String token = jwtService.generateToken(new UserPrincipal(saved));
         return new AuthResponse(token, saved.getId(), saved.getUsername(), List.of("ROLE_ADMINISTRATOR"));
