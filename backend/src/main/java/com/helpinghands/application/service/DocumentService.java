@@ -33,6 +33,27 @@ public class DocumentService {
     private final RequestRepository requestRepository;
     private final FileStorageService fileStorageService;
     private final CurrentUserResolver currentUserResolver;
+    private final AuditLogService auditLogService;
+
+    /**
+     * Content moderation: removes a single inappropriate document/image
+     * without touching the parent Request/ChildrensHome/ServiceProvider at
+     * all — soft-delete only (is_active = false), per the platform's
+     * no-hard-delete rule. Admin-only.
+     */
+    @Transactional
+    public void remove(Long documentId) {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ApiException("Document not found", HttpStatus.NOT_FOUND));
+
+        document.setIsActive(false);
+        document.setModifiedBy(currentUserResolver.getCurrentUser().getUsername());
+        document.setModifiedDate(java.time.LocalDateTime.now());
+        documentRepository.save(document);
+
+        auditLogService.record("DOCUMENT_REMOVED", document.getOwnerType().name(), document.getOwnerId(),
+                "Removed document #" + documentId + " (" + document.getOriginalFileName() + ")");
+    }
 
     @Transactional
     public DocumentResponse upload(DocumentOwnerType ownerType, Long ownerId, DocumentType documentType,

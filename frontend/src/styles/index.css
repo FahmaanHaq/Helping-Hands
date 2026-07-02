@@ -745,3 +745,27 @@ body {
 }
 
 .verify-banner button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.flagged-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #fbdede;
+  color: #b3261e;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.icon-button {
+  background: none;
+  border: 1px solid var(--hh-border);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button:hover { border-color: #b3261e; }

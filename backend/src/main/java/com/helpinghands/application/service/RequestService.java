@@ -5,11 +5,13 @@ import com.helpinghands.application.dto.request.*;
 import com.helpinghands.domain.entity.*;
 import com.helpinghands.infrastructure.repository.ChildrensHomeRepository;
 import com.helpinghands.infrastructure.repository.RequestRepository;
+import com.helpinghands.infrastructure.repository.RequestSpecifications;
 import com.helpinghands.infrastructure.repository.RequestStatusHistoryRepository;
 import com.helpinghands.infrastructure.repository.ServiceProviderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,7 @@ public class RequestService {
     private final ServiceProviderRepository serviceProviderRepository;
     private final CurrentUserResolver currentUserResolver;
     private final RatingService ratingService;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public RequestResponse create(CreateRequestRequest req) {
@@ -90,9 +93,24 @@ public class RequestService {
     }
 
     @Transactional(readOnly = true)
-    public Page<RequestResponse> browse(RequestStatus status, Pageable pageable) {
+    public Page<RequestResponse> browse(RequestStatus status, RequestType requestType, GoodsCategory goodsCategory,
+                                         ServiceCategory serviceCategory, UrgencyLevel urgency, Pageable pageable) {
         RequestStatus effective = status != null ? status : RequestStatus.CREATED;
-        return requestRepository.findByStatus(effective, pageable).map(this::toResponse);
+        boolean isAdmin = isAdmin(currentUserResolver.getCurrentUser());
+
+        Specification<Request> spec = Specification.where(RequestSpecifications.hasStatus(effective))
+                .and(RequestSpecifications.hasRequestType(requestType))
+                .and(RequestSpecifications.hasGoodsCategory(goodsCategory))
+                .and(RequestSpecifications.hasServiceCategory(serviceCategory))
+                .and(RequestSpecifications.hasUrgency(urgency));
+
+        // Flagged content is hidden from everyone except Administrators, who are
+        // the ones doing the moderating — they need to see it to act on it.
+        if (!isAdmin) {
+            spec = spec.and(RequestSpecifications.notFlagged());
+        }
+
+        return requestRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -147,6 +165,28 @@ public class RequestService {
         request.setStatus(to);
         Request saved = requestRepository.save(request);
         recordHistory(saved, from, to, change.remarks());
+
+        return toResponse(saved);
+    }
+
+    /**
+     * Content moderation — hides a request from the public marketplace without
+     * touching its lifecycle status, so a Home mid-fulfilment isn't forced into
+     * CANCELLED just because its description needs review. Admin-only, enforced
+     * at the controller (@PreAuthorize) and path level (SecurityConfig).
+     */
+    @Transactional
+    public RequestResponse setFlagged(Long id, boolean flagged, String reason) {
+        Request request = findOrThrow(id);
+        User admin = currentUserResolver.getCurrentUser();
+
+        request.setFlagged(flagged);
+        request.setFlagReason(flagged ? reason : null);
+        request.setFlaggedBy(flagged ? admin.getUsername() : null);
+        request.setFlaggedDate(flagged ? java.time.LocalDateTime.now() : null);
+
+        Request saved = requestRepository.save(request);
+        auditLogService.record(flagged ? "REQUEST_FLAGGED" : "REQUEST_UNFLAGGED", "REQUEST", id, reason);
 
         return toResponse(saved);
     }
@@ -258,6 +298,8 @@ public class RequestService {
                 r.getPledgedBy() != null ? r.getPledgedBy().getId() : null,
                 r.getPledgedBy() != null ? r.getPledgedBy().getUsername() : null,
                 r.getCancellationReason(),
+                r.getFlagged(),
+                r.getFlagReason(),
                 r.getCreatedDate()
         );
     }

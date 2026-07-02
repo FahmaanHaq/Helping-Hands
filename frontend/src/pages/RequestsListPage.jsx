@@ -1,42 +1,63 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Flag } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { browseRequests, getMyRequests, getMyPledges } from '../services/requestService';
+import { flagRequest } from '../services/moderationService';
 import RequestStatusBadge from '../components/RequestStatusBadge.jsx';
 
 const STATUS_OPTIONS = ['CREATED', 'PLEDGED', 'ACCEPTED', 'IN_PROGRESS', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
+const GOODS_CATEGORIES = ['FOOD', 'BOOKS', 'CLOTHING', 'MEDICAL_SUPPLIES', 'EDUCATIONAL_MATERIALS', 'OTHER_GOODS'];
+const SERVICE_CATEGORIES = ['TUITION', 'COUNSELLING', 'HEALTHCARE', 'SPORTS_COACHING', 'MAINTENANCE', 'OTHER'];
+const URGENCY_LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
-function RequestRow({ request }) {
+function RequestRow({ request, isAdmin, onToggleFlag }) {
   const categoryLabel = request.requestType === 'GOODS' ? request.goodsCategory : request.serviceCategory;
   return (
-    <Link to={`/requests/${request.id}`} className="request-row">
-      <div className="request-row-main">
+    <div className="request-row">
+      <Link to={`/requests/${request.id}`} className="request-row-main" style={{ textDecoration: 'none', color: 'inherit', flex: 1 }}>
         <strong>{request.title}</strong>
         <div className="hint-text">
           {request.childrensHomeName} · {request.requestType} · {categoryLabel?.replace('_', ' ')}
           {request.requestType === 'GOODS' && request.quantity ? ` · Qty ${request.quantity}` : ''}
         </div>
-      </div>
+      </Link>
       <div className="request-row-meta">
         <span className={`urgency-pill urgency-${request.urgency.toLowerCase()}`}>{request.urgency}</span>
         <RequestStatusBadge status={request.status} />
+        {request.flagged && <span className="flagged-pill">Flagged</span>}
+        {isAdmin && (
+          <button
+            type="button"
+            className="icon-button"
+            title={request.flagged ? 'Clear flag' : 'Flag as inappropriate'}
+            onClick={(e) => { e.preventDefault(); onToggleFlag(request); }}
+          >
+            <Flag size={16} fill={request.flagged ? '#b3261e' : 'none'} color="#b3261e" />
+          </button>
+        )}
       </div>
-    </Link>
+    </div>
   );
 }
 
 export default function RequestsListPage() {
   const { hasRole } = useAuth();
   const isHome = hasRole('CHILDRENS_HOME');
-  const isMarketplaceRole = hasRole('DONOR') || hasRole('SERVICE_PROVIDER');
+  const isDonor = hasRole('DONOR');
+  const isProvider = hasRole('SERVICE_PROVIDER');
+  const isMarketplaceRole = isDonor || isProvider;
   const isAdmin = hasRole('ADMINISTRATOR');
 
   const [requests, setRequests] = useState([]);
   const [pledges, setPledges] = useState([]);
   const [adminStatus, setAdminStatus] = useState('CREATED');
+  const [category, setCategory] = useState('');
+  const [urgency, setUrgency] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const categoryOptions = isDonor ? GOODS_CATEGORIES : SERVICE_CATEGORIES;
 
   const load = async () => {
     setLoading(true);
@@ -49,8 +70,14 @@ export default function RequestsListPage() {
         const page = await browseRequests(adminStatus);
         setRequests(page.content || []);
       } else if (isMarketplaceRole) {
+        const filters = {
+          requestType: isDonor ? 'GOODS' : 'SERVICE',
+          ...(isDonor && category ? { goodsCategory: category } : {}),
+          ...(isProvider && category ? { serviceCategory: category } : {}),
+          ...(urgency ? { urgency } : {})
+        };
         const [openPage, pledgesPage] = await Promise.all([
-          browseRequests('CREATED'),
+          browseRequests('CREATED', filters),
           getMyPledges()
         ]);
         setRequests(openPage.content || []);
@@ -63,7 +90,19 @@ export default function RequestsListPage() {
     }
   };
 
-  useEffect(() => { load(); }, [adminStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [adminStatus, category, urgency]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleToggleFlag = async (request) => {
+    if (!request.flagged) {
+      const reason = window.prompt('Reason for flagging this request:');
+      if (!reason) return;
+      await flagRequest(request.id, true, reason);
+    } else {
+      if (!window.confirm('Clear the flag on this request?')) return;
+      await flagRequest(request.id, false, null);
+    }
+    load();
+  };
 
   return (
     <div className="page page-wide">
@@ -85,16 +124,37 @@ export default function RequestsListPage() {
         </label>
       )}
 
+      {isMarketplaceRole && (
+        <div className="inline-filter" style={{ gap: '1rem' }}>
+          <label>
+            Category
+            <select value={category} onChange={(e) => setCategory(e.target.value)}>
+              <option value="">All</option>
+              {categoryOptions.map((c) => <option key={c} value={c}>{c.replace('_', ' ')}</option>)}
+            </select>
+          </label>
+          <label>
+            Urgency
+            <select value={urgency} onChange={(e) => setUrgency(e.target.value)}>
+              <option value="">All</option>
+              {URGENCY_LEVELS.map((u) => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </label>
+        </div>
+      )}
+
       {error && <p className="form-error">{error}</p>}
       {loading ? (
         <p className="hint-text">Loading…</p>
       ) : requests.length === 0 ? (
         <p className="hint-text">
-          {isHome ? "You haven't created any requests yet." : 'Nothing here right now.'}
+          {isHome ? "You haven't created any requests yet." : 'Nothing matches these filters right now.'}
         </p>
       ) : (
         <div className="request-list">
-          {requests.map((r) => <RequestRow key={r.id} request={r} />)}
+          {requests.map((r) => (
+            <RequestRow key={r.id} request={r} isAdmin={isAdmin} onToggleFlag={handleToggleFlag} />
+          ))}
         </div>
       )}
 
@@ -105,7 +165,7 @@ export default function RequestsListPage() {
             <p className="hint-text">You haven&apos;t pledged to any requests yet.</p>
           ) : (
             <div className="request-list">
-              {pledges.map((r) => <RequestRow key={r.id} request={r} />)}
+              {pledges.map((r) => <RequestRow key={r.id} request={r} isAdmin={false} />)}
             </div>
           )}
         </>

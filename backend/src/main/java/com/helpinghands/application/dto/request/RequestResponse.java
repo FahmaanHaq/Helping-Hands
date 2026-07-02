@@ -19,6 +19,8 @@ public record RequestResponse(
         Long pledgedByUserId,
         String pledgedByUsername,
         String cancellationReason,
+        Boolean flagged,
+        String flagReason,
         LocalDateTime createdDate
 ) {
 }

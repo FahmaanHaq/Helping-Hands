@@ -122,6 +122,44 @@ verification approved/rejected, request pledged, etc.) is not built yet.
 Status changes are currently silent until someone refreshes the page. That's
 explicitly the next planned piece of work.
 
+## Content Moderation
+
+- **Flagging is independent of lifecycle status.** A `Request` can be
+  `flagged` (with a reason, who flagged it, and when) without touching its
+  `CREATED`/`PLEDGED`/etc. status — so an admin investigating a
+  questionable listing doesn't have to force it into `CANCELLED` just to
+  hide it. Flagged requests are excluded from the public marketplace
+  browse for everyone except Administrators (`RequestSpecifications.notFlagged()`
+  in `RequestService.browse`).
+- **Individual document removal** — `DELETE /api/v1/admin/moderation/documents/{id}`
+  soft-deletes a single image/document (e.g. an inappropriate request photo)
+  without cancelling the request or profile it belongs to. Consistent with
+  the platform's no-hard-delete rule — `is_active = false`, not a real DELETE.
+- Both document removal (`DOCUMENT_REMOVED`) and flagging/unflagging
+  (`REQUEST_FLAGGED` / `REQUEST_UNFLAGGED`) are logged to the audit trail.
+
+## Marketplace search & filters
+
+`GET /api/v1/requests` now accepts `requestType`, `goodsCategory`,
+`serviceCategory`, and `urgency` as optional query params, combined with
+`status` via Spring Data JPA Specifications (`RequestSpecifications`) rather
+than a growing pile of derived-query methods. Donors filter by goods
+category, Service Providers by service category, both by urgency — the
+frontend fixes `requestType` to match the logged-in role automatically
+rather than exposing a redundant type selector.
+
+## PDF export (implemented)
+
+`GET /api/v1/admin/reports/export/pdf` — a real PDF, not a placeholder.
+Built with **Apache PDFBox** (Apache 2.0 license — no legal complications
+for production use, unlike some PDF libraries with AGPL/commercial terms).
+There's no table-layout engine in plain PDFBox, so `PdfReportService` hand-tracks
+a Y-cursor and starts new pages as content overflows — adequate for this
+report's shape (summary stats + a plain-text request listing); would need a
+proper reporting library (JasperReports etc.) if this grows into multi-column
+layouts or embedded images. CSV export remains available too, for
+spreadsheet-style consumption of the raw data rather than a formatted report.
+
 ## Bug fix: unverified Service Providers could pledge
 
 Found while reviewing the spec's "prevent unverified providers from offering

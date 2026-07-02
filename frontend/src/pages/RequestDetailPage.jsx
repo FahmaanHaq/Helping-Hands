@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Flag } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { getRequest, getRequestHistory, changeRequestStatus } from '../services/requestService';
 import { listDocuments, downloadDocument } from '../services/documentService';
+import { flagRequest, removeDocument } from '../services/moderationService';
 import RequestStatusBadge from '../components/RequestStatusBadge.jsx';
 import DocumentUploadWidget from '../components/DocumentUploadWidget.jsx';
 import RatingWidget from '../components/RatingWidget.jsx';
@@ -52,12 +54,24 @@ function getAvailableActions(request, user, hasRole) {
   return actions;
 }
 
-function RequestImageGallery({ requestId }) {
+function RequestImageGallery({ requestId, isAdmin }) {
   const [images, setImages] = useState(null);
 
-  useEffect(() => {
+  const load = () => {
     listDocuments('REQUEST', requestId).then(setImages).catch(() => setImages([]));
-  }, [requestId]);
+  };
+
+  useEffect(load, [requestId]);
+
+  const handleRemove = async (doc) => {
+    if (!window.confirm(`Remove "${doc.originalFileName}"? This only removes the image, not the request.`)) return;
+    try {
+      await removeDocument(doc.id);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to remove');
+    }
+  };
 
   if (images === null) return <p className="hint-text">Loading images…</p>;
   if (images.length === 0) return <p className="hint-text">No images attached.</p>;
@@ -67,7 +81,12 @@ function RequestImageGallery({ requestId }) {
       {images.map((doc) => (
         <li key={doc.id}>
           <span>{doc.originalFileName}</span>
-          <button type="button" onClick={() => downloadDocument(doc.id, doc.originalFileName)}>Download</button>
+          <span style={{ display: 'flex', gap: '0.4rem' }}>
+            <button type="button" onClick={() => downloadDocument(doc.id, doc.originalFileName)}>Download</button>
+            {isAdmin && (
+              <button type="button" className="btn-danger" onClick={() => handleRemove(doc)}>Remove</button>
+            )}
+          </span>
         </li>
       ))}
     </ul>
@@ -83,6 +102,8 @@ export default function RequestDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  const isAdmin = hasRole('ADMINISTRATOR');
 
   const load = async () => {
     setLoading(true);
@@ -116,6 +137,18 @@ export default function RequestDetailPage() {
     }
   };
 
+  const handleToggleFlag = async () => {
+    if (!request.flagged) {
+      const reason = window.prompt('Reason for flagging this request:');
+      if (!reason) return;
+      await flagRequest(request.id, true, reason);
+    } else {
+      if (!window.confirm('Clear the flag on this request?')) return;
+      await flagRequest(request.id, false, null);
+    }
+    load();
+  };
+
   if (loading) return <div className="page">Loading…</div>;
   if (error) return <div className="page"><p className="form-error">{error}</p></div>;
   if (!request) return null;
@@ -129,7 +162,13 @@ export default function RequestDetailPage() {
       <button className="link-button" onClick={() => navigate(-1)} style={{ marginBottom: '1rem' }}>← Back</button>
 
       <div className="profile-card">
-        <div className="profile-row"><span>Status</span><RequestStatusBadge status={request.status} /></div>
+        <div className="profile-row">
+          <span>Status</span>
+          <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <RequestStatusBadge status={request.status} />
+            {request.flagged && <span className="flagged-pill">Flagged</span>}
+          </span>
+        </div>
         <div className="profile-row"><span>Title</span><strong>{request.title}</strong></div>
         <div className="profile-row"><span>Home</span><strong>{request.childrensHomeName}</strong></div>
         <div className="profile-row"><span>Type</span><strong>{request.requestType} · {categoryLabel?.replace('_', ' ')}</strong></div>
@@ -148,6 +187,9 @@ export default function RequestDetailPage() {
         {request.status === 'CANCELLED' && request.cancellationReason && (
           <p className="form-error">Cancelled: {request.cancellationReason}</p>
         )}
+        {request.flagged && request.flagReason && (
+          <p className="form-error">Flagged: {request.flagReason}</p>
+        )}
 
         {actions.length > 0 && (
           <div className="verification-actions" style={{ marginTop: '0.5rem' }}>
@@ -163,6 +205,17 @@ export default function RequestDetailPage() {
             ))}
           </div>
         )}
+
+        {isAdmin && (
+          <button
+            type="button"
+            className={request.flagged ? '' : 'btn-danger'}
+            style={{ marginTop: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+            onClick={handleToggleFlag}
+          >
+            <Flag size={14} /> {request.flagged ? 'Clear Flag' : 'Flag as Inappropriate'}
+          </button>
+        )}
       </div>
 
       <div className="document-widget">
@@ -170,7 +223,7 @@ export default function RequestDetailPage() {
         {canUploadImages ? (
           <DocumentUploadWidget ownerType="REQUEST" ownerId={request.id} allowedTypes={['REQUEST_IMAGE']} />
         ) : (
-          <RequestImageGallery requestId={request.id} />
+          <RequestImageGallery requestId={request.id} isAdmin={isAdmin} />
         )}
       </div>
 

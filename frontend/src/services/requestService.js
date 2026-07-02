@@ -15,8 +15,8 @@ export async function getRequest(id) {
   return data.data;
 }
 
-export async function browseRequests(status) {
-  const { data } = await api.get('/requests', { params: { status, size: 50 } });
+export async function browseRequests(status, filters = {}) {
+  const { data } = await api.get('/requests', { params: { status, size: 50, ...filters } });
   return data.data; // Page<RequestResponse>
 }
 

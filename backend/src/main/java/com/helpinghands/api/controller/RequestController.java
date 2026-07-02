@@ -46,15 +46,20 @@ public class RequestController {
     /**
      * Marketplace browse — defaults to CREATED (open, unpledged requests).
      * Any authenticated role can browse; write actions are still gated by
-     * assertAuthorizedForTransition in the service.
+     * assertAuthorizedForTransition in the service. Flagged content is
+     * excluded for non-admins (see RequestService.browse).
      */
     @GetMapping
     public ApiResponse<Page<RequestResponse>> browse(
             @RequestParam(required = false) RequestStatus status,
+            @RequestParam(required = false) com.helpinghands.domain.entity.RequestType requestType,
+            @RequestParam(required = false) com.helpinghands.domain.entity.GoodsCategory goodsCategory,
+            @RequestParam(required = false) com.helpinghands.domain.entity.ServiceCategory serviceCategory,
+            @RequestParam(required = false) com.helpinghands.domain.entity.UrgencyLevel urgency,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return ApiResponse.ok("Retrieved", requestService.browse(status, pageable));
+        return ApiResponse.ok("Retrieved", requestService.browse(status, requestType, goodsCategory, serviceCategory, urgency, pageable));
     }
 
     @GetMapping("/me")

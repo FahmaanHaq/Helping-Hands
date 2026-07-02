@@ -1,26 +1,38 @@
 import React, { useEffect, useState } from 'react';
-import { Download, Star } from 'lucide-react';
-import { getReportsSummary, exportRequestsCsv } from '../services/reportsService';
+import { Download, FileText } from 'lucide-react';
+import { getReportsSummary, exportRequestsCsv, exportReportPdf } from '../services/reportsService';
 import StatCard from '../components/StatCard.jsx';
 import RequestBreakdownChart from '../components/RequestBreakdownChart.jsx';
 
 export default function AdminReportsPage() {
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState(null);
-  const [exporting, setExporting] = useState(false);
+  const [exportingCsv, setExportingCsv] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   useEffect(() => {
     getReportsSummary().then(setSummary).catch(() => setError('Failed to load reports'));
   }, []);
 
-  const handleExport = async () => {
-    setExporting(true);
+  const handleExportCsv = async () => {
+    setExportingCsv(true);
     try {
       await exportRequestsCsv();
     } catch {
       alert('Export failed');
     } finally {
-      setExporting(false);
+      setExportingCsv(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setExportingPdf(true);
+    try {
+      await exportReportPdf();
+    } catch {
+      alert('Export failed');
+    } finally {
+      setExportingPdf(false);
     }
   };
 
@@ -42,9 +54,14 @@ export default function AdminReportsPage() {
     <div className="page page-wide">
       <header className="page-header">
         <h1>Reports</h1>
-        <button className="btn-primary" onClick={handleExport} disabled={exporting}>
-          <Download size={16} /> {exporting ? 'Exporting…' : 'Export Requests (CSV)'}
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn-primary" onClick={handleExportCsv} disabled={exportingCsv}>
+            <Download size={16} /> {exportingCsv ? 'Exporting…' : 'Export CSV'}
+          </button>
+          <button className="btn-primary" onClick={handleExportPdf} disabled={exportingPdf}>
+            <FileText size={16} /> {exportingPdf ? 'Exporting…' : 'Export PDF'}
+          </button>
+        </div>
       </header>
 
       <div className="stat-grid">
@@ -70,11 +87,6 @@ export default function AdminReportsPage() {
         <RequestBreakdownChart data={typeData} title="Requests by Type" />
         <RequestBreakdownChart data={statusData} title="Requests by Outcome" />
       </div>
-
-      <p className="hint-text">
-        <Star size={14} style={{ verticalAlign: 'text-bottom' }} /> PDF export isn&apos;t implemented yet —
-        CSV covers the Excel-export requirement without adding a heavy PDF dependency to the MVP.
-      </p>
     </div>
   );
 }

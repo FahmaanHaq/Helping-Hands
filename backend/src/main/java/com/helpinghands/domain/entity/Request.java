@@ -67,6 +67,25 @@ public class Request extends BaseEntity {
     @Column(name = "cancellation_reason", length = 1000)
     private String cancellationReason;
 
+    /**
+     * Content moderation, independent of the request's lifecycle status.
+     * A flagged request stays in whatever status it was in (CREATED, PLEDGED,
+     * etc.) but is hidden from the public marketplace browse until an admin
+     * clears the flag — this lets a home fix/clarify content, or an admin
+     * investigate, without forcing a full CANCELLED outcome.
+     */
+    @Column(name = "flagged", nullable = false)
+    private Boolean flagged = false;
+
+    @Column(name = "flag_reason", length = 500)
+    private String flagReason;
+
+    @Column(name = "flagged_by", length = 150)
+    private String flaggedBy;
+
+    @Column(name = "flagged_date")
+    private java.time.LocalDateTime flaggedDate;
+
     public boolean isGoods() {
         return requestType == RequestType.GOODS;
     }
