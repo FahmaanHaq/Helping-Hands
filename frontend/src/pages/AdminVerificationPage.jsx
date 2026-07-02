@@ -4,6 +4,7 @@ import {
   listPendingServiceProviders, decideServiceProvider
 } from '../services/verificationService';
 import StatusBadge from '../components/StatusBadge.jsx';
+import ApplicantDocuments from '../components/ApplicantDocuments.jsx';
 
 export default function AdminVerificationPage() {
   const [homes, setHomes] = useState([]);
@@ -82,6 +83,7 @@ export default function AdminVerificationPage() {
               <div className="hint-text">{home.contactEmail} · {home.contactNumber}</div>
               <div className="hint-text">{home.address}</div>
               <StatusBadge status={home.verificationStatus} />
+              <ApplicantDocuments ownerType="CHILDRENS_HOME" ownerId={home.id} />
             </div>
             <div className="verification-actions">
               <button onClick={() => handleHomeDecision(home.id, 'APPROVED')}>Approve</button>
@@ -104,6 +106,7 @@ export default function AdminVerificationPage() {
                 {provider.policeClearanceRequired ? 'Required' : 'Not required'}
               </div>
               <StatusBadge status={provider.verificationStatus} />
+              <ApplicantDocuments ownerType="SERVICE_PROVIDER" ownerId={provider.id} />
             </div>
             <div className="verification-actions">
               <button onClick={() => handleProviderDecision(provider.id, 'APPROVED', provider.policeClearanceRequired)}>

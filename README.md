@@ -117,6 +117,40 @@ Suggested build order, given the dependencies between modules:
 
 ## Not included yet (by design, per your chosen scope)
 
-Document uploads, request/verification entities, reputation, reports, and
-admin moderation screens are **not** in this slice — they're the next
-pieces of work, built on exactly this foundation.
+Donation/service requests, request lifecycle tracking, reputation, reports,
+and admin moderation (suspend/ban) screens are **not** in this slice — they're
+the next pieces of work, built on exactly this foundation.
+
+## Document Upload module (added)
+
+- Generic `documents` table with polymorphic ownership (`owner_type` +
+  `owner_id`), covering both Children's Home and Service Provider documents
+  with one schema.
+- Storage is abstracted behind `FileStorageService` — `LocalFileStorageService`
+  is the only implementation today, writing to `storage.local.base-path`.
+  Swapping in S3/Azure Blob/GCS later is a new class + a Spring profile,
+  no changes to `DocumentService` or any controller.
+- Validation: 10MB max, PDF/JPG/PNG only, duplicate (same type + filename)
+  rejected.
+- Ownership enforced server-side: only the profile's own user or an
+  Administrator can upload, list, or download a given document.
+
+**Important limitation if deployed on Render's free tier (or similar
+ephemeral-disk hosts):** uploaded files live on local disk and are wiped on
+every redeploy or restart. Fine for a demo/walkthrough, not fine for anything
+persistent. The fix when you're ready is a `CloudFileStorageService`
+implementation (e.g. backed by S3-compatible storage like Cloudflare R2 or
+Backblaze B2, both of which have free tiers) — the interface is already
+shaped for that swap.
+
+## Dashboard (redesigned)
+
+Role-aware stat cards and a chart, not just a static welcome message:
+- **Administrator** — pending/approved/rejected counts across both Homes and
+  Providers, plus a bar chart breakdown (`VerificationStatusChart`, via
+  `recharts`), backed by `GET /api/v1/admin/dashboard/verification-stats`.
+- **Children's Home / Service Provider** — a status card reflecting their
+  own verification state, or a call-to-action tile if they haven't
+  registered a profile yet.
+- **Donor** — placeholder cards, honestly labeled as pending the Requests
+  module rather than showing fabricated numbers.

@@ -25,6 +25,18 @@ spring:
   jackson:
     default-property-inclusion: non_null
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+storage:
+  local:
+    # WARNING: on hosts with an ephemeral filesystem (e.g. Render's free tier),
+    # anything written here is wiped on every redeploy/restart. Fine for a demo;
+    # swap FileStorageService for a cloud-backed implementation before real use.
+    base-path: ${STORAGE_BASE_PATH:./uploads}
+
 security:
   jwt:
     secret: ${JWT_SECRET:replace-this-with-a-long-random-secret-in-every-environment}

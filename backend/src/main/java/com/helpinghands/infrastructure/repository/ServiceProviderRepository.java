@@ -15,4 +15,6 @@ public interface ServiceProviderRepository extends JpaRepository<ServiceProvider
     boolean existsByUserId(Long userId);
 
     Page<ServiceProvider> findByVerificationStatus(VerificationStatus status, Pageable pageable);
+
+    long countByVerificationStatus(VerificationStatus status);
 }

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { registerServiceProvider, getMyServiceProvider } from '../services/serviceProviderService';
 import StatusBadge from '../components/StatusBadge.jsx';
+import DocumentUploadWidget from '../components/DocumentUploadWidget.jsx';
 
 const CATEGORY_OPTIONS = ['TUITION', 'COUNSELLING', 'HEALTHCARE', 'SPORTS_COACHING', 'MAINTENANCE', 'OTHER'];
+const PROVIDER_DOCUMENT_TYPES = ['QUALIFICATION_CERTIFICATE', 'POLICE_CLEARANCE_REPORT', 'IDENTITY_DOCUMENT', 'ADDITIONAL_PROOF'];
 
 const initialForm = {
   skills: '',
@@ -81,11 +83,16 @@ export default function ServiceProviderRegisterPage() {
           )}
           {profile.policeClearanceRequired && !profile.policeClearanceVerified && (
             <p className="hint-text">
-              Document upload for police clearance will be enabled in the next module —
-              for now this is verified manually by an administrator.
+              Upload your police clearance report below — an administrator will verify it before approval.
             </p>
           )}
         </div>
+
+        <DocumentUploadWidget
+          ownerType="SERVICE_PROVIDER"
+          ownerId={profile.id}
+          allowedTypes={PROVIDER_DOCUMENT_TYPES}
+        />
       </div>
     );
   }

@@ -245,3 +245,140 @@ body {
 .verification-actions .btn-danger {
   background: var(--hh-error);
 }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid var(--hh-border);
+  border-top: 4px solid var(--hh-primary);
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.stat-card-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.stat-card-label {
+  margin-top: 0.35rem;
+  font-weight: 600;
+  color: var(--hh-text);
+}
+
+.stat-card-subtitle {
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  color: #6b6f68;
+}
+
+.chart-card {
+  background: white;
+  border: 1px solid var(--hh-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.chart-card h3 {
+  margin-top: 0;
+}
+
+.dashboard-tile-cta {
+  border-color: var(--hh-primary);
+  color: var(--hh-primary);
+}
+
+.document-widget {
+  margin-top: 1.5rem;
+  background: white;
+  border: 1px solid var(--hh-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 560px;
+}
+
+.document-widget h3 { margin-top: 0; }
+
+.document-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.document-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f0f1ee;
+  font-size: 0.9rem;
+}
+
+.document-list li button {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--hh-primary);
+  background: none;
+  color: var(--hh-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.document-upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.document-upload-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.document-upload-form input,
+.document-upload-form select {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--hh-border);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.document-upload-form button {
+  padding: 0.6rem;
+  background: var(--hh-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.document-upload-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.applicant-documents {
+  margin-top: 0.5rem;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--hh-primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0;
+}

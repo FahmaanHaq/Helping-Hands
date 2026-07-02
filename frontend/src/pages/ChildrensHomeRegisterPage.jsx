@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { registerChildrensHome, getMyChildrensHome } from '../services/childrensHomeService';
 import StatusBadge from '../components/StatusBadge.jsx';
+import DocumentUploadWidget from '../components/DocumentUploadWidget.jsx';
+
+const HOME_DOCUMENT_TYPES = ['GOVERNMENT_REGISTRATION_CERTIFICATE', 'NCPA_DOCUMENT', 'ADDITIONAL_PROOF'];
 
 const initialForm = {
   homeName: '',
@@ -66,6 +69,12 @@ export default function ChildrensHomeRegisterPage() {
             </p>
           )}
         </div>
+
+        <DocumentUploadWidget
+          ownerType="CHILDRENS_HOME"
+          ownerId={profile.id}
+          allowedTypes={HOME_DOCUMENT_TYPES}
+        />
       </div>
     );
   }

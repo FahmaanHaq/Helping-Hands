@@ -17,4 +17,6 @@ public interface ChildrensHomeRepository extends JpaRepository<ChildrensHome, Lo
     boolean existsByUserId(Long userId);
 
     Page<ChildrensHome> findByVerificationStatus(VerificationStatus status, Pageable pageable);
+
+    long countByVerificationStatus(VerificationStatus status);
 }
