@@ -149,8 +149,62 @@ Role-aware stat cards and a chart, not just a static welcome message:
 - **Administrator** — pending/approved/rejected counts across both Homes and
   Providers, plus a bar chart breakdown (`VerificationStatusChart`, via
   `recharts`), backed by `GET /api/v1/admin/dashboard/verification-stats`.
-- **Children's Home / Service Provider** — a status card reflecting their
-  own verification state, or a call-to-action tile if they haven't
-  registered a profile yet.
-- **Donor** — placeholder cards, honestly labeled as pending the Requests
-  module rather than showing fabricated numbers.
+  Also links to the full request overview.
+- **Children's Home** — verification status, active/completed request counts,
+  and documents uploaded, all pulled from real data.
+- **Service Provider** — verification + police clearance status, pledge
+  count, and documents uploaded.
+- **Donor** — open goods-request count and pledge count, both real numbers
+  now that the Request module exists.
+
+## Navigation (sidebar)
+
+Replaced the old top navbar with a persistent left sidebar (desktop) /
+slide-out drawer (mobile), role-based menu items, active-route highlighting,
+and a small custom "helping hands" logomark reused as the site favicon
+(`frontend/public/favicon.svg`).
+
+## Donation & Service Request module
+
+The core product loop: Children's Homes post requests, Donors/Service
+Providers pledge to fulfil them, and both sides track the request through
+its full lifecycle.
+
+- **Lifecycle**: `CREATED → PLEDGED → ACCEPTED → IN_PROGRESS → DELIVERED →
+  COMPLETED`, with `CANCELLED` reachable from `CREATED` or `PLEDGED`.
+- **Single state-machine endpoint** — `PATCH /api/v1/requests/{id}/status`
+  handles every transition. The legal-transition table and the "who's
+  allowed to make this specific change" rules both live in one place
+  (`RequestService`), rather than being spread across one endpoint per
+  transition.
+- **Role rules enforced server-side**: only the owning home can accept a
+  pledge or confirm completion; only a Donor can pledge to a GOODS request
+  and only a Service Provider to a SERVICE request; only the pledged user
+  can mark delivery; Administrators can override any transition (dispute
+  resolution).
+- **Full audit trail** — every transition is recorded in
+  `request_status_history` with who changed it, when, and any remarks.
+  `GET /api/v1/requests/{id}/history` returns the timeline.
+- **Request images** reuse the Document module (`DocumentOwnerType.REQUEST`)
+  rather than a separate upload path — same validation, same storage
+  abstraction. Unlike verification documents, request images are viewable
+  by any authenticated user (it's a public marketplace listing), while
+  upload stays restricted to the owning home.
+- **Pages**: `/requests` (role-adaptive: own requests for Homes, open
+  marketplace + pledges for Donors/Providers, full filterable list for
+  Admins), `/requests/new` (create), `/requests/:id` (detail, status
+  actions, image gallery, history timeline).
+
+## Polish pass
+
+- **Admin provisioning** — replaced the "register normally, then manually
+  UPDATE the role in SQL" workaround with a real endpoint:
+  `POST /api/v1/auth/register-admin`, gated by an `X-Admin-Bootstrap-Token`
+  header that must match the `ADMIN_BOOTSTRAP_SECRET` environment variable.
+  This keeps admin creation out of the public registration form entirely
+  while still being a proper API call rather than a manual DB edit.
+  **Set a real secret before deploying** — generate one with
+  `openssl rand -base64 32`.
+- **Dashboard stats are now real data** everywhere, not placeholders (see
+  above).
+- **Favicon** added, matching the sidebar brand mark.

@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Home, HardHat, ShieldCheck, HeartHandshake, LogOut, X
+  LayoutDashboard, Home, HardHat, ShieldCheck, PackageSearch, LogOut, X
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import Logomark from '../Logomark.jsx';
@@ -45,11 +45,24 @@ export default function Sidebar({ open, onClose }) {
           )}
 
           {hasRole('DONOR') && (
-            <span className="sidebar-link sidebar-link-disabled">
-              <HeartHandshake size={18} />
+            <NavLink to="/requests" className={linkClass} onClick={onClose}>
+              <PackageSearch size={18} />
               <span>Donation Requests</span>
-              <em>soon</em>
-            </span>
+            </NavLink>
+          )}
+
+          {hasRole('CHILDRENS_HOME') && (
+            <NavLink to="/requests" className={linkClass} onClick={onClose}>
+              <PackageSearch size={18} />
+              <span>My Requests</span>
+            </NavLink>
+          )}
+
+          {hasRole('SERVICE_PROVIDER') && (
+            <NavLink to="/requests" className={linkClass} onClick={onClose}>
+              <PackageSearch size={18} />
+              <span>Service Requests</span>
+            </NavLink>
           )}
 
           {hasRole('ADMINISTRATOR') && (
@@ -58,6 +71,10 @@ export default function Sidebar({ open, onClose }) {
               <NavLink to="/admin/verification" className={linkClass} onClick={onClose}>
                 <ShieldCheck size={18} />
                 <span>Verification Queue</span>
+              </NavLink>
+              <NavLink to="/requests" className={linkClass} onClick={onClose}>
+                <PackageSearch size={18} />
+                <span>All Requests</span>
               </NavLink>
             </>
           )}

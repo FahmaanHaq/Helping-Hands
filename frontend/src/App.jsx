@@ -8,6 +8,9 @@ import UnauthorizedPage from './pages/UnauthorizedPage.jsx';
 import ChildrensHomeRegisterPage from './pages/ChildrensHomeRegisterPage.jsx';
 import ServiceProviderRegisterPage from './pages/ServiceProviderRegisterPage.jsx';
 import AdminVerificationPage from './pages/AdminVerificationPage.jsx';
+import CreateRequestPage from './pages/CreateRequestPage.jsx';
+import RequestsListPage from './pages/RequestsListPage.jsx';
+import RequestDetailPage from './pages/RequestDetailPage.jsx';
 import ProtectedRoute from './routes/ProtectedRoute.jsx';
 
 // Authenticated pages get the sidebar shell; public pages (login/register) don't.
@@ -51,19 +54,37 @@ export default function App() {
       />
 
       <Route
-        path="/admin/verification"
+        path="/requests"
         element={
-          <ProtectedRoute allowedRoles={['ADMINISTRATOR']}>
-            <Shell><AdminVerificationPage /></Shell>
+          <ProtectedRoute>
+            <Shell><RequestsListPage /></Shell>
           </ProtectedRoute>
         }
       />
 
       <Route
-        path="/admin"
+        path="/requests/new"
+        element={
+          <ProtectedRoute allowedRoles={['CHILDRENS_HOME']}>
+            <Shell><CreateRequestPage /></Shell>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/requests/:id"
+        element={
+          <ProtectedRoute>
+            <Shell><RequestDetailPage /></Shell>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/verification"
         element={
           <ProtectedRoute allowedRoles={['ADMINISTRATOR']}>
-            <Shell><div className="page">Admin area placeholder</div></Shell>
+            <Shell><AdminVerificationPage /></Shell>
           </ProtectedRoute>
         }
       />

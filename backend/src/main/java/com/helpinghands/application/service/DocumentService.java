@@ -5,6 +5,7 @@ import com.helpinghands.application.dto.document.DocumentResponse;
 import com.helpinghands.domain.entity.*;
 import com.helpinghands.infrastructure.repository.ChildrensHomeRepository;
 import com.helpinghands.infrastructure.repository.DocumentRepository;
+import com.helpinghands.infrastructure.repository.RequestRepository;
 import com.helpinghands.infrastructure.repository.ServiceProviderRepository;
 import com.helpinghands.infrastructure.storage.FileStorageService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final ChildrensHomeRepository childrensHomeRepository;
     private final ServiceProviderRepository serviceProviderRepository;
+    private final RequestRepository requestRepository;
     private final FileStorageService fileStorageService;
     private final CurrentUserResolver currentUserResolver;
 
@@ -36,7 +38,7 @@ public class DocumentService {
     public DocumentResponse upload(DocumentOwnerType ownerType, Long ownerId, DocumentType documentType,
                                     String remarks, MultipartFile file) {
         validateFile(file);
-        assertOwnershipOrAdmin(ownerType, ownerId);
+        assertCanUpload(ownerType, ownerId);
         assertNoDuplicate(ownerType, ownerId, documentType, file.getOriginalFilename());
 
         String subFolder = ownerType.name().toLowerCase();
@@ -57,7 +59,7 @@ public class DocumentService {
 
     @Transactional(readOnly = true)
     public List<DocumentResponse> list(DocumentOwnerType ownerType, Long ownerId) {
-        assertOwnershipOrAdmin(ownerType, ownerId);
+        assertCanView(ownerType, ownerId);
         return documentRepository.findByOwnerTypeAndOwnerIdAndIsActiveTrue(ownerType, ownerId)
                 .stream().map(this::toResponse).toList();
     }
@@ -67,7 +69,7 @@ public class DocumentService {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new ApiException("Document not found", HttpStatus.NOT_FOUND));
 
-        assertOwnershipOrAdmin(document.getOwnerType(), document.getOwnerId());
+        assertCanView(document.getOwnerType(), document.getOwnerId());
 
         String subFolder = document.getOwnerType().name().toLowerCase();
         InputStream stream = fileStorageService.retrieve(document.getStoredFileName(), subFolder);
@@ -99,12 +101,36 @@ public class DocumentService {
     }
 
     /**
+     * Only the profile's own user (or an Administrator) may upload a document
+     * to it — applies to all owner types, including REQUEST, since only the
+     * owning Children's Home should be able to attach images to its own request.
+     */
+    private void assertCanUpload(DocumentOwnerType ownerType, Long ownerId) {
+        assertIsOwnerOrAdmin(ownerType, ownerId);
+    }
+
+    /**
+     * Viewing rules differ by owner type: verification documents (Children's Home /
+     * Service Provider) stay private to the owner and Administrators, since they
+     * contain sensitive personal/registration data. Request images are part of a
+     * public marketplace listing — any authenticated user browsing requests needs
+     * to see them, so no ownership check is applied there.
+     */
+    private void assertCanView(DocumentOwnerType ownerType, Long ownerId) {
+        if (ownerType == DocumentOwnerType.REQUEST) {
+            currentUserResolver.getCurrentUser(); // still requires authentication, just not ownership
+            return;
+        }
+        assertIsOwnerOrAdmin(ownerType, ownerId);
+    }
+
+    /**
      * Confirms the caller either IS the owner (their user_id matches the home/provider's
      * user_id) or is an Administrator. Thrown as 403 rather than 404 to distinguish
      * "exists but not yours" from "doesn't exist" — deliberate here since document
      * ownership isn't sensitive to enumerate, unlike e.g. user accounts.
      */
-    private void assertOwnershipOrAdmin(DocumentOwnerType ownerType, Long ownerId) {
+    private void assertIsOwnerOrAdmin(DocumentOwnerType ownerType, Long ownerId) {
         User currentUser = currentUserResolver.getCurrentUser();
 
         boolean isAdmin = currentUser.getRoles().stream()
@@ -118,6 +144,9 @@ public class DocumentService {
             case SERVICE_PROVIDER -> serviceProviderRepository.findById(ownerId)
                     .map(p -> p.getUser().getId())
                     .orElseThrow(() -> new ApiException("Service Provider not found", HttpStatus.NOT_FOUND));
+            case REQUEST -> requestRepository.findById(ownerId)
+                    .map(r -> r.getChildrensHome().getUser().getId())
+                    .orElseThrow(() -> new ApiException("Request not found", HttpStatus.NOT_FOUND));
         };
 
         if (!resolvedOwnerUserId.equals(currentUser.getId())) {

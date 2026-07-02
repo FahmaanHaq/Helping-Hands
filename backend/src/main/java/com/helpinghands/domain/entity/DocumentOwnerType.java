@@ -6,5 +6,6 @@ package com.helpinghands.domain.entity;
  */
 public enum DocumentOwnerType {
     CHILDRENS_HOME,
-    SERVICE_PROVIDER
+    SERVICE_PROVIDER,
+    REQUEST
 }

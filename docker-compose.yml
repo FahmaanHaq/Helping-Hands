@@ -35,6 +35,7 @@ services:
       JWT_EXPIRATION_MS: 86400000
       JPA_DDL_AUTO: validate
       STORAGE_BASE_PATH: /app/uploads
+      ADMIN_BOOTSTRAP_SECRET: ${ADMIN_BOOTSTRAP_SECRET}
     volumes:
       - hh_uploads:/app/uploads
     # No public port mapping either — only Caddy talks to it, over the

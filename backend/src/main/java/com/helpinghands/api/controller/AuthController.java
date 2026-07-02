@@ -32,4 +32,21 @@ public class AuthController {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(ApiResponse.ok("Login successful", response));
     }
+
+    /**
+     * Provisions an Administrator account. Deliberately NOT wired into the normal
+     * /register flow or the RoleName options a user can self-select — replaces the
+     * "register normally, then promote via a manual SQL UPDATE" workaround with a
+     * proper, auditable path: only callable by someone who has the bootstrap secret
+     * (set via ADMIN_BOOTSTRAP_SECRET), which lives in your deployment's env vars,
+     * not in application code or any public-facing form.
+     */
+    @PostMapping("/register-admin")
+    public ResponseEntity<ApiResponse<AuthResponse>> registerAdmin(
+            @Valid @RequestBody RegisterRequest request,
+            @RequestHeader("X-Admin-Bootstrap-Token") String bootstrapToken) {
+        AuthResponse response = authService.registerAdmin(request, bootstrapToken);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("Administrator account created", response));
+    }
 }

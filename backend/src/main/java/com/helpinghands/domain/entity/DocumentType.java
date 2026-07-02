@@ -11,5 +11,8 @@ public enum DocumentType {
     IDENTITY_DOCUMENT,
 
     // Shared
-    ADDITIONAL_PROOF
+    ADDITIONAL_PROOF,
+
+    // Requests
+    REQUEST_IMAGE
 }

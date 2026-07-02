@@ -7,7 +7,8 @@ const TYPE_LABELS = {
   QUALIFICATION_CERTIFICATE: 'Qualification Certificate',
   POLICE_CLEARANCE_REPORT: 'Police Clearance Report',
   IDENTITY_DOCUMENT: 'Identity Document',
-  ADDITIONAL_PROOF: 'Additional Proof Document'
+  ADDITIONAL_PROOF: 'Additional Proof Document',
+  REQUEST_IMAGE: 'Request Image'
 };
 
 /**

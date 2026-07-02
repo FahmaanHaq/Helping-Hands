@@ -41,6 +41,7 @@ security:
   jwt:
     secret: ${JWT_SECRET:replace-this-with-a-long-random-secret-in-every-environment}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000} # 24h
+  admin-bootstrap-secret: ${ADMIN_BOOTSTRAP_SECRET:change-this-in-every-environment}
 
 springdoc:
   api-docs:

@@ -5,12 +5,14 @@ import com.helpinghands.application.dto.AuthResponse;
 import com.helpinghands.application.dto.LoginRequest;
 import com.helpinghands.application.dto.RegisterRequest;
 import com.helpinghands.domain.entity.Role;
+import com.helpinghands.domain.entity.RoleName;
 import com.helpinghands.domain.entity.User;
 import com.helpinghands.infrastructure.repository.RoleRepository;
 import com.helpinghands.infrastructure.repository.UserRepository;
 import com.helpinghands.infrastructure.security.JwtService;
 import com.helpinghands.infrastructure.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -32,6 +34,9 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+
+    @Value("${security.admin-bootstrap-secret}")
+    private String adminBootstrapSecret;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -62,6 +67,40 @@ public class AuthService {
         String token = jwtService.generateToken(new UserPrincipal(saved));
 
         return new AuthResponse(token, saved.getId(), saved.getUsername(), roleNames);
+    }
+
+    @Transactional
+    public AuthResponse registerAdmin(RegisterRequest request, String providedSecret) {
+        if (adminBootstrapSecret == null || adminBootstrapSecret.isBlank()
+                || !adminBootstrapSecret.equals(providedSecret)) {
+            // Same message either way — don't reveal whether the secret was wrong
+            // vs. not configured, that's an implementation detail an attacker
+            // shouldn't get for free.
+            throw new ApiException("Invalid bootstrap token", HttpStatus.FORBIDDEN);
+        }
+
+        if (userRepository.existsByEmail(request.email())) {
+            throw new ApiException("An account with this email already exists", HttpStatus.CONFLICT);
+        }
+        if (userRepository.existsByUsername(request.username())) {
+            throw new ApiException("This username is already taken", HttpStatus.CONFLICT);
+        }
+
+        Role adminRole = roleRepository.findByName(RoleName.ADMINISTRATOR)
+                .orElseThrow(() -> new ApiException("ADMINISTRATOR role is not configured", HttpStatus.INTERNAL_SERVER_ERROR));
+
+        User user = new User();
+        user.setFullName(request.fullName());
+        user.setUsername(request.username());
+        user.setEmail(request.email());
+        user.setPhoneNumber(request.phoneNumber());
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setRoles(Set.of(adminRole));
+
+        User saved = userRepository.save(user);
+
+        String token = jwtService.generateToken(new UserPrincipal(saved));
+        return new AuthResponse(token, saved.getId(), saved.getUsername(), List.of("ROLE_ADMINISTRATOR"));
     }
 
     public AuthResponse login(LoginRequest request) {
