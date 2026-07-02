@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { browseRequests, getMyRequests, getMyPledges } from '../services/requestService';
 import { flagRequest } from '../services/moderationService';
 import RequestStatusBadge from '../components/RequestStatusBadge.jsx';
+import Pagination from '../components/Pagination.jsx';
 
 const STATUS_OPTIONS = ['CREATED', 'PLEDGED', 'ACCEPTED', 'IN_PROGRESS', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
 const GOODS_CATEGORIES = ['FOOD', 'BOOKS', 'CLOTHING', 'MEDICAL_SUPPLIES', 'EDUCATIONAL_MATERIALS', 'OTHER_GOODS'];
@@ -49,8 +50,10 @@ export default function RequestsListPage() {
   const isMarketplaceRole = isDonor || isProvider;
   const isAdmin = hasRole('ADMINISTRATOR');
 
-  const [requests, setRequests] = useState([]);
-  const [pledges, setPledges] = useState([]);
+  const [mainPage, setMainPage] = useState(null);   // Page<RequestResponse> for the primary list
+  const [pledgesPage, setPledgesPage] = useState(null);
+  const [pageNum, setPageNum] = useState(0);
+  const [pledgesPageNum, setPledgesPageNum] = useState(0);
   const [adminStatus, setAdminStatus] = useState('CREATED');
   const [category, setCategory] = useState('');
   const [urgency, setUrgency] = useState('');
@@ -64,11 +67,9 @@ export default function RequestsListPage() {
     setError(null);
     try {
       if (isHome) {
-        const page = await getMyRequests();
-        setRequests(page.content || []);
+        setMainPage(await getMyRequests(pageNum));
       } else if (isAdmin) {
-        const page = await browseRequests(adminStatus);
-        setRequests(page.content || []);
+        setMainPage(await browseRequests(adminStatus, {}, pageNum));
       } else if (isMarketplaceRole) {
         const filters = {
           requestType: isDonor ? 'GOODS' : 'SERVICE',
@@ -76,12 +77,12 @@ export default function RequestsListPage() {
           ...(isProvider && category ? { serviceCategory: category } : {}),
           ...(urgency ? { urgency } : {})
         };
-        const [openPage, pledgesPage] = await Promise.all([
-          browseRequests('CREATED', filters),
-          getMyPledges()
+        const [openPage, myPledgesPage] = await Promise.all([
+          browseRequests('CREATED', filters, pageNum),
+          getMyPledges(pledgesPageNum)
         ]);
-        setRequests(openPage.content || []);
-        setPledges(pledgesPage.content || []);
+        setMainPage(openPage);
+        setPledgesPage(myPledgesPage);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load requests');
@@ -90,7 +91,11 @@ export default function RequestsListPage() {
     }
   };
 
-  useEffect(() => { load(); }, [adminStatus, category, urgency]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Reset to page 0 whenever a filter changes (a stale page number combined
+  // with a narrower filter could otherwise land past the new last page).
+  useEffect(() => { setPageNum(0); }, [adminStatus, category, urgency]);
+
+  useEffect(() => { load(); }, [adminStatus, category, urgency, pageNum, pledgesPageNum]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleToggleFlag = async (request) => {
     if (!request.flagged) {
@@ -103,6 +108,9 @@ export default function RequestsListPage() {
     }
     load();
   };
+
+  const requests = mainPage?.content || [];
+  const pledges = pledgesPage?.content || [];
 
   return (
     <div className="page page-wide">
@@ -151,11 +159,14 @@ export default function RequestsListPage() {
           {isHome ? "You haven't created any requests yet." : 'Nothing matches these filters right now.'}
         </p>
       ) : (
-        <div className="request-list">
-          {requests.map((r) => (
-            <RequestRow key={r.id} request={r} isAdmin={isAdmin} onToggleFlag={handleToggleFlag} />
-          ))}
-        </div>
+        <>
+          <div className="request-list">
+            {requests.map((r) => (
+              <RequestRow key={r.id} request={r} isAdmin={isAdmin} onToggleFlag={handleToggleFlag} />
+            ))}
+          </div>
+          <Pagination pageData={mainPage} onPageChange={setPageNum} />
+        </>
       )}
 
       {isMarketplaceRole && (
@@ -164,9 +175,12 @@ export default function RequestsListPage() {
           {pledges.length === 0 ? (
             <p className="hint-text">You haven&apos;t pledged to any requests yet.</p>
           ) : (
-            <div className="request-list">
-              {pledges.map((r) => <RequestRow key={r.id} request={r} isAdmin={false} />)}
-            </div>
+            <>
+              <div className="request-list">
+                {pledges.map((r) => <RequestRow key={r.id} request={r} isAdmin={false} />)}
+              </div>
+              <Pagination pageData={pledgesPage} onPageChange={setPledgesPageNum} />
+            </>
           )}
         </>
       )}

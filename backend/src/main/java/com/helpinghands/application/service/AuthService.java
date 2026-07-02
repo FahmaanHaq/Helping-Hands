@@ -33,6 +33,8 @@ public class AuthService {
 
     private static final long EMAIL_VERIFICATION_VALIDITY_MINUTES = 24 * 60;
     private static final long PASSWORD_RESET_VALIDITY_MINUTES = 60;
+    private static final java.time.Duration RESEND_COOLDOWN = java.time.Duration.ofMinutes(2);
+    private static final java.time.Duration FORGOT_PASSWORD_COOLDOWN = java.time.Duration.ofMinutes(2);
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -42,6 +44,7 @@ public class AuthService {
     private final AuditLogService auditLogService;
     private final TokenService tokenService;
     private final EmailService emailService;
+    private final RateLimiterService rateLimiterService;
 
     @Value("${security.admin-bootstrap-secret}")
     private String adminBootstrapSecret;
@@ -142,6 +145,11 @@ public class AuthService {
         if (Boolean.TRUE.equals(user.getEmailVerified())) {
             throw new ApiException("This email is already verified", HttpStatus.CONFLICT);
         }
+        if (!rateLimiterService.tryAcquire("resend-verification:" + userId, RESEND_COOLDOWN)) {
+            throw new ApiException(
+                    "Please wait a couple of minutes before requesting another verification email",
+                    HttpStatus.TOO_MANY_REQUESTS);
+        }
         sendVerificationEmail(user);
     }
 
@@ -161,6 +169,14 @@ public class AuthService {
      */
     @Transactional
     public void forgotPassword(String email) {
+        // Rate-limited on the raw email string itself, before the lookup — this
+        // way the cooldown check doesn't leak whether the email is registered
+        // (an attacker probing for account existence via response timing/behavior
+        // gets identical treatment either way).
+        if (!rateLimiterService.tryAcquire("forgot-password:" + email.toLowerCase(), FORGOT_PASSWORD_COOLDOWN)) {
+            return; // silently no-op; response to the caller is identical either way (see controller)
+        }
+
         userRepository.findByEmailAndIsActiveTrue(email).ifPresent(user -> {
             String rawToken = tokenService.issueToken(user, TokenType.PASSWORD_RESET, PASSWORD_RESET_VALIDITY_MINUTES);
             String resetLink = frontendUrl + "/reset-password?token=" + rawToken;

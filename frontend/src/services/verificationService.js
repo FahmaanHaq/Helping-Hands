@@ -1,7 +1,7 @@
 import api from './api';
 
-export async function listPendingChildrensHomes(status = 'SUBMITTED') {
-  const { data } = await api.get('/admin/verification/childrens-homes', { params: { status } });
+export async function listPendingChildrensHomes(status = 'SUBMITTED', page = 0) {
+  const { data } = await api.get('/admin/verification/childrens-homes', { params: { status, page, size: 10 } });
   return data.data; // Page<ChildrensHomeResponse>
 }
 
@@ -13,8 +13,8 @@ export async function decideChildrensHome(id, decision, rejectionReason) {
   return data.data;
 }
 
-export async function listPendingServiceProviders(status = 'SUBMITTED') {
-  const { data } = await api.get('/admin/verification/service-providers', { params: { status } });
+export async function listPendingServiceProviders(status = 'SUBMITTED', page = 0) {
+  const { data } = await api.get('/admin/verification/service-providers', { params: { status, page, size: 10 } });
   return data.data;
 }
 

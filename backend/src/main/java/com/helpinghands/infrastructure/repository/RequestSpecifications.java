@@ -43,4 +43,8 @@ public final class RequestSpecifications {
     public static Specification<Request> notFlagged() {
         return (root, query, cb) -> cb.isFalse(root.get("flagged"));
     }
+
+    public static Specification<Request> isFlagged() {
+        return (root, query, cb) -> cb.isTrue(root.get("flagged"));
+    }
 }

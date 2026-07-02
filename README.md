@@ -323,7 +323,47 @@ its full lifecycle.
   Admins), `/requests/new` (create), `/requests/:id` (detail, status
   actions, image gallery, history timeline).
 
-## Polish pass
+## Formal project documentation
+
+`docs/PROJECT_DOCUMENTATION.md` covers the full 18-section documentation set
+originally specified (architecture, database design, API docs, deployment
+guide, security best practices, etc.) — this README stays focused on
+"get it running"; that file is the complete formal reference.
+
+## Testing
+
+- **Backend**: `cd backend && mvn test` — unit tests (JUnit 5 + Mockito, no
+  database required) covering the highest-risk logic: the full Request
+  lifecycle state machine and role-permission rules
+  (`RequestServiceTest`), the reputation restriction threshold
+  (`RatingServiceTest`), token hashing/expiry/replay-protection
+  (`TokenServiceTest`), and Service Provider eligibility
+  (`ServiceProviderTest`).
+- **Frontend**: `cd frontend && npm test` — Vitest + React Testing Library,
+  covering `Pagination` (the component resolving the fake-pagination gap),
+  `RequestStatusBadge`, and `AuthContext`'s role-checking logic.
+- Neither suite is exhaustive — they're deliberately aimed at the logic
+  most likely to silently break something important (permission checks,
+  state transitions, security-sensitive token handling) rather than
+  chasing 100% coverage on presentational code.
+
+## This round's fixes
+
+- **Rate limiting** — `forgot-password` and `resend-verification` now
+  enforce a 2-minute cooldown (`RateLimiterService`, in-memory — fine for
+  one instance, would need Redis if this ever runs as more than one).
+  Closes an email-spam / SMTP-quota-abuse gap that had been sitting open.
+- **Flagged Content queue** — a dedicated admin page (`/admin/flagged`)
+  listing everything currently flagged, across all lifecycle statuses,
+  rather than requiring an admin to manually page through every status
+  filter looking for flag icons.
+- **Real pagination everywhere** — Requests (marketplace, my-requests,
+  pledges), Users, Audit Log, and the Verification Queue all now page
+  through the backend's real `Page` support (10 items/page) via a shared
+  `Pagination` component, instead of fetching up to 50 records flat with
+  no navigation.
+
+## Earlier polish pass
 
 - **Admin provisioning** — replaced the "register normally, then manually
   UPDATE the role in SQL" workaround with a real endpoint:

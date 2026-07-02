@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { listUsers, suspendUser, reinstateUser } from '../services/userAdminService';
+import Pagination from '../components/Pagination.jsx';
 
 export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
-  const [users, setUsers] = useState([]);
+  const [pageData, setPageData] = useState(null);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -11,8 +13,7 @@ export default function AdminUsersPage() {
     setLoading(true);
     setError(null);
     try {
-      const page = await listUsers(search || undefined);
-      setUsers(page.content || []);
+      setPageData(await listUsers(search || undefined, page));
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load users');
     } finally {
@@ -20,10 +21,11 @@ export default function AdminUsersPage() {
     }
   };
 
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = (e) => {
     e.preventDefault();
+    setPage(0);
     load();
   };
 
@@ -48,6 +50,8 @@ export default function AdminUsersPage() {
     }
   };
 
+  const users = pageData?.content || [];
+
   return (
     <div className="page page-wide">
       <h1>User Management</h1>
@@ -68,28 +72,31 @@ export default function AdminUsersPage() {
       ) : users.length === 0 ? (
         <p className="hint-text">No users found.</p>
       ) : (
-        <div className="request-list">
-          {users.map((u) => (
-            <div key={u.id} className="verification-card">
-              <div>
-                <strong>{u.fullName}</strong> · {u.username} · {u.email}
-                <div className="hint-text">
-                  {u.roles.join(', ')} · Joined {new Date(u.createdDate).toLocaleDateString()}
+        <>
+          <div className="request-list">
+            {users.map((u) => (
+              <div key={u.id} className="verification-card">
+                <div>
+                  <strong>{u.fullName}</strong> · {u.username} · {u.email}
+                  <div className="hint-text">
+                    {u.roles.join(', ')} · Joined {new Date(u.createdDate).toLocaleDateString()}
+                  </div>
+                  {u.accountLocked && (
+                    <div className="form-error">Suspended: {u.suspensionReason}</div>
+                  )}
                 </div>
-                {u.accountLocked && (
-                  <div className="form-error">Suspended: {u.suspensionReason}</div>
-                )}
+                <div className="verification-actions">
+                  {u.accountLocked ? (
+                    <button onClick={() => handleReinstate(u)}>Reinstate</button>
+                  ) : (
+                    <button className="btn-danger" onClick={() => handleSuspend(u)}>Suspend</button>
+                  )}
+                </div>
               </div>
-              <div className="verification-actions">
-                {u.accountLocked ? (
-                  <button onClick={() => handleReinstate(u)}>Reinstate</button>
-                ) : (
-                  <button className="btn-danger" onClick={() => handleSuspend(u)}>Suspend</button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <Pagination pageData={pageData} onPageChange={setPage} />
+        </>
       )}
     </div>
   );

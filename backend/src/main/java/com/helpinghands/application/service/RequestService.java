@@ -94,9 +94,18 @@ public class RequestService {
 
     @Transactional(readOnly = true)
     public Page<RequestResponse> browse(RequestStatus status, RequestType requestType, GoodsCategory goodsCategory,
-                                         ServiceCategory serviceCategory, UrgencyLevel urgency, Pageable pageable) {
-        RequestStatus effective = status != null ? status : RequestStatus.CREATED;
+                                         ServiceCategory serviceCategory, UrgencyLevel urgency, Boolean flaggedOnly,
+                                         Pageable pageable) {
         boolean isAdmin = isAdmin(currentUserResolver.getCurrentUser());
+
+        // Normally defaults to CREATED (the marketplace view). Exception: an admin
+        // explicitly asking for "flagged only" wants to see flagged items across
+        // every status — that's the whole point of a moderation queue — so status
+        // stays unfiltered unless they also pick one.
+        RequestStatus effective = status;
+        if (effective == null && !(isAdmin && Boolean.TRUE.equals(flaggedOnly))) {
+            effective = RequestStatus.CREATED;
+        }
 
         Specification<Request> spec = Specification.where(RequestSpecifications.hasStatus(effective))
                 .and(RequestSpecifications.hasRequestType(requestType))
@@ -104,9 +113,11 @@ public class RequestService {
                 .and(RequestSpecifications.hasServiceCategory(serviceCategory))
                 .and(RequestSpecifications.hasUrgency(urgency));
 
-        // Flagged content is hidden from everyone except Administrators, who are
-        // the ones doing the moderating — they need to see it to act on it.
-        if (!isAdmin) {
+        if (isAdmin && Boolean.TRUE.equals(flaggedOnly)) {
+            spec = spec.and(RequestSpecifications.isFlagged());
+        } else if (!isAdmin) {
+            // Flagged content is hidden from everyone except Administrators, who are
+            // the ones doing the moderating — they need to see it to act on it.
             spec = spec.and(RequestSpecifications.notFlagged());
         }
 

@@ -56,10 +56,11 @@ public class RequestController {
             @RequestParam(required = false) com.helpinghands.domain.entity.GoodsCategory goodsCategory,
             @RequestParam(required = false) com.helpinghands.domain.entity.ServiceCategory serviceCategory,
             @RequestParam(required = false) com.helpinghands.domain.entity.UrgencyLevel urgency,
+            @RequestParam(required = false) Boolean flagged,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return ApiResponse.ok("Retrieved", requestService.browse(status, requestType, goodsCategory, serviceCategory, urgency, pageable));
+        return ApiResponse.ok("Retrieved", requestService.browse(status, requestType, goodsCategory, serviceCategory, urgency, flagged, pageable));
     }
 
     @GetMapping("/me")

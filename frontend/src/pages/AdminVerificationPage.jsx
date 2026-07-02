@@ -5,10 +5,13 @@ import {
 } from '../services/verificationService';
 import StatusBadge from '../components/StatusBadge.jsx';
 import ApplicantDocuments from '../components/ApplicantDocuments.jsx';
+import Pagination from '../components/Pagination.jsx';
 
 export default function AdminVerificationPage() {
-  const [homes, setHomes] = useState([]);
-  const [providers, setProviders] = useState([]);
+  const [homesPage, setHomesPage] = useState(null);
+  const [providersPage, setProvidersPage] = useState(null);
+  const [homesPageNum, setHomesPageNum] = useState(0);
+  const [providersPageNum, setProvidersPageNum] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -16,12 +19,12 @@ export default function AdminVerificationPage() {
     setLoading(true);
     setError(null);
     try {
-      const [homesPage, providersPage] = await Promise.all([
-        listPendingChildrensHomes('SUBMITTED'),
-        listPendingServiceProviders('SUBMITTED')
+      const [homes, providers] = await Promise.all([
+        listPendingChildrensHomes('SUBMITTED', homesPageNum),
+        listPendingServiceProviders('SUBMITTED', providersPageNum)
       ]);
-      setHomes(homesPage.content || []);
-      setProviders(providersPage.content || []);
+      setHomesPage(homes);
+      setProvidersPage(providers);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load pending verifications');
     } finally {
@@ -29,7 +32,7 @@ export default function AdminVerificationPage() {
     }
   };
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => { loadAll(); }, [homesPageNum, providersPageNum]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleHomeDecision = async (id, decision) => {
     let reason = null;
@@ -39,7 +42,7 @@ export default function AdminVerificationPage() {
     }
     try {
       await decideChildrensHome(id, decision, reason);
-      setHomes((prev) => prev.filter((h) => h.id !== id));
+      loadAll();
     } catch (err) {
       alert(err.response?.data?.message || 'Decision failed');
     }
@@ -60,7 +63,7 @@ export default function AdminVerificationPage() {
     }
     try {
       await decideServiceProvider(id, decision, reason, clearanceVerified);
-      setProviders((prev) => prev.filter((p) => p.id !== id));
+      loadAll();
     } catch (err) {
       alert(err.response?.data?.message || 'Decision failed');
     }
@@ -68,13 +71,16 @@ export default function AdminVerificationPage() {
 
   if (loading) return <div className="page">Loading pending verifications…</div>;
 
+  const homes = homesPage?.content || [];
+  const providers = providersPage?.content || [];
+
   return (
     <div className="page page-wide">
       <h1>Verification Queue</h1>
       {error && <p className="form-error">{error}</p>}
 
       <section>
-        <h2>Children&apos;s Homes ({homes.length} pending)</h2>
+        <h2>Children&apos;s Homes ({homesPage?.totalElements ?? 0} pending)</h2>
         {homes.length === 0 && <p className="hint-text">Nothing pending.</p>}
         {homes.map((home) => (
           <div key={home.id} className="verification-card">
@@ -91,10 +97,11 @@ export default function AdminVerificationPage() {
             </div>
           </div>
         ))}
+        <Pagination pageData={homesPage} onPageChange={setHomesPageNum} />
       </section>
 
       <section>
-        <h2>Service Providers ({providers.length} pending)</h2>
+        <h2>Service Providers ({providersPage?.totalElements ?? 0} pending)</h2>
         {providers.length === 0 && <p className="hint-text">Nothing pending.</p>}
         {providers.map((provider) => (
           <div key={provider.id} className="verification-card">
@@ -118,6 +125,7 @@ export default function AdminVerificationPage() {
             </div>
           </div>
         ))}
+        <Pagination pageData={providersPage} onPageChange={setProvidersPageNum} />
       </section>
     </div>
   );

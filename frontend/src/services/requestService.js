@@ -15,23 +15,30 @@ export async function getRequest(id) {
   return data.data;
 }
 
-export async function browseRequests(status, filters = {}) {
-  const { data } = await api.get('/requests', { params: { status, size: 50, ...filters } });
+const PAGE_SIZE = 10;
+
+export async function browseRequests(status, filters = {}, page = 0) {
+  const { data } = await api.get('/requests', { params: { status, size: PAGE_SIZE, page, ...filters } });
   return data.data; // Page<RequestResponse>
 }
 
-export async function getMyRequests() {
-  const { data } = await api.get('/requests/me', { params: { size: 50 } });
+export async function getMyRequests(page = 0) {
+  const { data } = await api.get('/requests/me', { params: { size: PAGE_SIZE, page } });
   return data.data;
 }
 
-export async function getMyPledges() {
-  const { data } = await api.get('/requests/my-pledges', { params: { size: 50 } });
+export async function getMyPledges(page = 0) {
+  const { data } = await api.get('/requests/my-pledges', { params: { size: PAGE_SIZE, page } });
   return data.data;
 }
 
 export async function getRequestHistory(id) {
   const { data } = await api.get(`/requests/${id}/history`);
+  return data.data;
+}
+
+export async function browseFlaggedRequests(page = 0) {
+  const { data } = await api.get('/requests', { params: { flagged: true, size: PAGE_SIZE, page } });
   return data.data;
 }
 

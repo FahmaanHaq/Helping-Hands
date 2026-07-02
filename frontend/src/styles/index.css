@@ -769,3 +769,32 @@ body {
 }
 
 .icon-button:hover { border-color: #b3261e; }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--hh-border);
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.pagination-btn:hover:not(:disabled) { border-color: var(--hh-primary); }
+.pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.pagination-info {
+  font-size: 0.8rem;
+  color: #6b6f68;
+}

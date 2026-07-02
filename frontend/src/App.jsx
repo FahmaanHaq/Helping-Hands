@@ -14,6 +14,7 @@ import AdminVerificationPage from './pages/AdminVerificationPage.jsx';
 import AdminUsersPage from './pages/AdminUsersPage.jsx';
 import AdminAuditLogPage from './pages/AdminAuditLogPage.jsx';
 import AdminReportsPage from './pages/AdminReportsPage.jsx';
+import AdminFlaggedContentPage from './pages/AdminFlaggedContentPage.jsx';
 import CreateRequestPage from './pages/CreateRequestPage.jsx';
 import RequestsListPage from './pages/RequestsListPage.jsx';
 import RequestDetailPage from './pages/RequestDetailPage.jsx';
@@ -121,6 +122,15 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={['ADMINISTRATOR']}>
             <Shell><AdminReportsPage /></Shell>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/flagged"
+        element={
+          <ProtectedRoute allowedRoles={['ADMINISTRATOR']}>
+            <Shell><AdminFlaggedContentPage /></Shell>
           </ProtectedRoute>
         }
       />
