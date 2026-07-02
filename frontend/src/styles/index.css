@@ -104,3 +104,144 @@ body {
   font-size: 0.9rem;
   margin: 0;
 }
+
+.hint-text {
+  color: #6b6f68;
+  font-size: 0.85rem;
+}
+
+.dashboard-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.dashboard-tile {
+  display: block;
+  padding: 1rem 1.25rem;
+  background: white;
+  border: 1px solid var(--hh-border);
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--hh-text);
+  font-weight: 600;
+  transition: border-color 0.15s;
+}
+
+.dashboard-tile:hover { border-color: var(--hh-primary); }
+
+.dashboard-tile-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  font-weight: 400;
+}
+
+.page-wide {
+  max-width: 960px;
+}
+
+.stacked-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 520px;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--hh-border);
+}
+
+.stacked-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.stacked-form input,
+.stacked-form select,
+.stacked-form textarea {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--hh-border);
+  border-radius: 8px;
+  font: inherit;
+  resize: vertical;
+}
+
+.stacked-form fieldset {
+  border: 1px solid var(--hh-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.checkbox-label {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+  font-weight: normal;
+}
+
+.stacked-form button {
+  padding: 0.7rem;
+  background: var(--hh-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stacked-form button:hover { background: var(--hh-primary-dark); }
+.stacked-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.profile-card {
+  background: white;
+  border: 1px solid var(--hh-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #f0f1ee;
+  padding-bottom: 0.5rem;
+}
+
+.verification-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  background: white;
+  border: 1px solid var(--hh-border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.verification-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.verification-actions button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--hh-primary);
+  color: white;
+}
+
+.verification-actions .btn-danger {
+  background: var(--hh-error);
+}

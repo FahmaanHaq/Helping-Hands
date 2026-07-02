@@ -1,8 +1,9 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
 
   return (
     <div className="page">
@@ -14,12 +15,30 @@ export default function DashboardPage() {
       <p>Welcome, <strong>{user?.username}</strong>.</p>
       <p>Roles: {user?.roles?.join(', ')}</p>
 
-      <section>
-        <p>
-          This is a scaffold landing point. Each role's real dashboard
-          (Donor / Service Provider / Children&apos;s Home / Administrator)
-          will be built as its own module on top of this skeleton.
-        </p>
+      <section className="dashboard-actions">
+        {hasRole('CHILDRENS_HOME') && (
+          <Link className="dashboard-tile" to="/childrens-home">
+            Children&apos;s Home Profile & Verification Status
+          </Link>
+        )}
+
+        {hasRole('SERVICE_PROVIDER') && (
+          <Link className="dashboard-tile" to="/service-provider">
+            Service Provider Profile & Verification Status
+          </Link>
+        )}
+
+        {hasRole('DONOR') && (
+          <div className="dashboard-tile dashboard-tile-disabled">
+            Donation Requests — coming in a later module
+          </div>
+        )}
+
+        {hasRole('ADMINISTRATOR') && (
+          <Link className="dashboard-tile" to="/admin/verification">
+            Verification Queue (Homes & Providers)
+          </Link>
+        )}
       </section>
     </div>
   );

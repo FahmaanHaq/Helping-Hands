@@ -5,6 +5,9 @@ import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import UnauthorizedPage from './pages/UnauthorizedPage.jsx';
+import ChildrensHomeRegisterPage from './pages/ChildrensHomeRegisterPage.jsx';
+import ServiceProviderRegisterPage from './pages/ServiceProviderRegisterPage.jsx';
+import AdminVerificationPage from './pages/AdminVerificationPage.jsx';
 import ProtectedRoute from './routes/ProtectedRoute.jsx';
 
 export default function App() {
@@ -27,7 +30,33 @@ export default function App() {
             }
           />
 
-          {/* Example of a role-restricted route for the Admin module later */}
+          <Route
+            path="/childrens-home"
+            element={
+              <ProtectedRoute allowedRoles={['CHILDRENS_HOME']}>
+                <ChildrensHomeRegisterPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/service-provider"
+            element={
+              <ProtectedRoute allowedRoles={['SERVICE_PROVIDER']}>
+                <ServiceProviderRegisterPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/verification"
+            element={
+              <ProtectedRoute allowedRoles={['ADMINISTRATOR']}>
+                <AdminVerificationPage />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/admin"
             element={

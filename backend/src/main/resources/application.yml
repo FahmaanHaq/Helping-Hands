@@ -6,7 +6,7 @@ spring:
     name: helping-hands-backend
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:helping_hands}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:helping_hands}?sslmode=${DB_SSL_MODE:disable}
     username: ${DB_USERNAME:helping_hands_user}
     password: ${DB_PASSWORD:changeme}
     driver-class-name: org.postgresql.Driver
