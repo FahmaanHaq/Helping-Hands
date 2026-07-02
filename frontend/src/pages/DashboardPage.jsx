@@ -122,7 +122,7 @@ function DonorDashboard() {
 }
 
 export default function DashboardPage() {
-  const { user, logout, hasRole } = useAuth();
+  const { user, hasRole } = useAuth();
 
   return (
     <div className="page page-wide">
@@ -131,7 +131,6 @@ export default function DashboardPage() {
           <h1>Dashboard</h1>
           <p className="hint-text">Welcome back, <strong>{user?.username}</strong> · {user?.roles?.join(', ')}</p>
         </div>
-        <button onClick={logout}>Log out</button>
       </header>
 
       {hasRole('ADMINISTRATOR') && <AdminDashboard />}

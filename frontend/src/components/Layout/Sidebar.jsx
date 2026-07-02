@@ -1,0 +1,82 @@
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import {
+  LayoutDashboard, Home, HardHat, ShieldCheck, HeartHandshake, LogOut, X
+} from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import Logomark from '../Logomark.jsx';
+
+export default function Sidebar({ open, onClose }) {
+  const { user, logout, hasRole } = useAuth();
+
+  const linkClass = ({ isActive }) => 'sidebar-link' + (isActive ? ' sidebar-link-active' : '');
+
+  return (
+    <>
+      {open && <div className="sidebar-backdrop" onClick={onClose} />}
+
+      <aside className={'sidebar' + (open ? ' sidebar-open' : '')}>
+        <div className="sidebar-brand">
+          <Logomark />
+          <span>Helping Hands</span>
+          <button className="sidebar-close" onClick={onClose} aria-label="Close menu">
+            <X size={20} />
+          </button>
+        </div>
+
+        <nav className="sidebar-nav">
+          <NavLink to="/dashboard" className={linkClass} onClick={onClose} end>
+            <LayoutDashboard size={18} />
+            <span>Dashboard</span>
+          </NavLink>
+
+          {hasRole('CHILDRENS_HOME') && (
+            <NavLink to="/childrens-home" className={linkClass} onClick={onClose}>
+              <Home size={18} />
+              <span>My Home Profile</span>
+            </NavLink>
+          )}
+
+          {hasRole('SERVICE_PROVIDER') && (
+            <NavLink to="/service-provider" className={linkClass} onClick={onClose}>
+              <HardHat size={18} />
+              <span>My Provider Profile</span>
+            </NavLink>
+          )}
+
+          {hasRole('DONOR') && (
+            <span className="sidebar-link sidebar-link-disabled">
+              <HeartHandshake size={18} />
+              <span>Donation Requests</span>
+              <em>soon</em>
+            </span>
+          )}
+
+          {hasRole('ADMINISTRATOR') && (
+            <>
+              <div className="sidebar-section-label">Administration</div>
+              <NavLink to="/admin/verification" className={linkClass} onClick={onClose}>
+                <ShieldCheck size={18} />
+                <span>Verification Queue</span>
+              </NavLink>
+            </>
+          )}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-user">
+            <div className="sidebar-avatar">{user?.username?.[0]?.toUpperCase()}</div>
+            <div>
+              <div className="sidebar-username">{user?.username}</div>
+              <div className="sidebar-role">{user?.roles?.[0]?.replace('ROLE_', '')}</div>
+            </div>
+          </div>
+          <button className="sidebar-logout" onClick={logout}>
+            <LogOut size={16} />
+            <span>Log out</span>
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+}
