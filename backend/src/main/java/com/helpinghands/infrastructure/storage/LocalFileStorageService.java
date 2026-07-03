@@ -68,7 +68,9 @@ public class LocalFileStorageService implements FileStorageService {
 
             return storageKey;
         } catch (Exception e) {
-            throw new ApiException("Failed to store file: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new ApiException(
+                    "Failed to store file (" + e.getClass().getSimpleName() + "): " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -90,7 +92,9 @@ public class LocalFileStorageService implements FileStorageService {
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
-            throw new ApiException("Failed to read file: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new ApiException(
+                    "Failed to read file (" + e.getClass().getSimpleName() + "): " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

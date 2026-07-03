@@ -10,7 +10,13 @@ RUN mvn -B clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 RUN addgroup -S spring && adduser -S spring -G spring
+# Create the uploads directory and hand /app to the non-root user BEFORE
+# switching to it — without this, the container runs as `spring` but /app
+# is still owned by root, so LocalFileStorageService can never create or
+# write to /app/uploads. This is the actual cause of every document upload
+# failing with "Failed to store file: /app/./uploads" in production.
+RUN mkdir -p /app/uploads && chown -R spring:spring /app
 USER spring:spring
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build --chown=spring:spring /app/target/*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
