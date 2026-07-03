@@ -33,4 +33,8 @@ public interface RequestRepository extends JpaRepository<Request, Long>, JpaSpec
 
     @Query("SELECT r FROM Request r WHERE r.status IN ('ACCEPTED', 'IN_PROGRESS') AND r.modifiedDate < :cutoff")
     java.util.List<Request> findStalledInProgress(@Param("cutoff") java.time.LocalDateTime cutoff);
+
+    @Query("SELECT r FROM Request r WHERE r.deliveryMethod = 'VOLUNTEER_PICKUP' " +
+           "AND r.status IN ('PLEDGED', 'ACCEPTED') AND r.modifiedDate < :cutoff")
+    java.util.List<Request> findStalledVolunteerPickup(@Param("cutoff") java.time.LocalDateTime cutoff);
 }

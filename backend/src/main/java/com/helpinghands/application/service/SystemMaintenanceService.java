@@ -30,6 +30,14 @@ public class SystemMaintenanceService {
     /** How long a pledged-but-unfinished request sits before the fulfiller gets a nudge. */
     private static final int STALLED_PROGRESS_REMINDER_DAYS = 14;
 
+    /**
+     * The specific "volunteer said they'd pick it up but nothing's happened"
+     * window — shorter than the general stalled-progress reminder, because a
+     * Home needs enough runway left to actually arrange a paid courier
+     * alternative before the situation gets urgent.
+     */
+    private static final int STALLED_VOLUNTEER_PICKUP_REMINDER_DAYS = 7;
+
     private final UserRepository userRepository;
     private final RequestRepository requestRepository;
     private final NotificationService notificationService;
@@ -91,6 +99,16 @@ public class SystemMaintenanceService {
             notificationService.notify(request.getPledgedBy(), NotificationType.REQUEST_REMINDER,
                     "Pledge Awaiting Progress", "\"" + request.getTitle() + "\" hasn't been updated in over "
                             + STALLED_PROGRESS_REMINDER_DAYS + " days. Please update its status when you can.",
+                    "/requests/" + request.getId());
+        }
+
+        LocalDateTime volunteerCutoff = LocalDateTime.now().minusDays(STALLED_VOLUNTEER_PICKUP_REMINDER_DAYS);
+        for (Request request : requestRepository.findStalledVolunteerPickup(volunteerCutoff)) {
+            notificationService.notify(request.getChildrensHome().getUser(), NotificationType.REQUEST_REMINDER,
+                    "Volunteer Pickup Hasn't Progressed",
+                    "\"" + request.getTitle() + "\" was pledged with a delivery volunteer requested, but there's been no "
+                            + "progress in over " + STALLED_VOLUNTEER_PICKUP_REMINDER_DAYS + " days. You can arrange an "
+                            + "alternative (e.g. a courier) from the request page if needed.",
                     "/requests/" + request.getId());
         }
     }

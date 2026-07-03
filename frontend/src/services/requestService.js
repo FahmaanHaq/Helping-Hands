@@ -51,3 +51,8 @@ export async function getRecommendedRequests() {
   const { data } = await api.get('/requests/recommended');
   return data.data;
 }
+
+export async function arrangeAlternativeDelivery(id, courierDetails) {
+  const { data } = await api.patch(`/requests/${id}/arrange-alternative-delivery`, null, { params: { courierDetails } });
+  return data.data;
+}

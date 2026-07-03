@@ -101,4 +101,11 @@ public class RequestController {
             @PathVariable Long id, @Valid @RequestBody RequestStatusChangeRequest request) {
         return ApiResponse.ok("Status updated", requestService.changeStatus(id, request));
     }
+
+    @PatchMapping("/{id}/arrange-alternative-delivery")
+    @PreAuthorize("hasRole('CHILDRENS_HOME')")
+    public ApiResponse<RequestResponse> arrangeAlternativeDelivery(
+            @PathVariable Long id, @RequestParam String courierDetails) {
+        return ApiResponse.ok("Alternative delivery arranged", requestService.arrangeAlternativeDelivery(id, courierDetails));
+    }
 }

@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Flag } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { getRequest, getRequestHistory, changeRequestStatus } from '../services/requestService';
+import { getRequest, getRequestHistory, changeRequestStatus, arrangeAlternativeDelivery } from '../services/requestService';
 import { listDocuments, downloadDocument, removeOwnDocument } from '../services/documentService';
 import { flagRequest, removeDocument } from '../services/moderationService';
+import { listMessages, sendMessage } from '../services/messageService';
 import RequestStatusBadge from '../components/RequestStatusBadge.jsx';
 import DocumentUploadWidget from '../components/DocumentUploadWidget.jsx';
 import RatingWidget from '../components/RatingWidget.jsx';
@@ -22,7 +23,7 @@ function getAvailableActions(request, user, hasRole) {
   switch (request.status) {
     case 'CREATED':
       if ((request.requestType === 'GOODS' && isDonor) || (request.requestType === 'SERVICE' && isProvider)) {
-        actions.push({ label: 'Pledge to Fulfil', status: 'PLEDGED' });
+        actions.push({ label: 'Pledge to Fulfil', status: 'PLEDGED', needsDelivery: request.requestType === 'GOODS' });
       }
       if (isOwningHome || isAdmin) {
         actions.push({ label: 'Cancel Request', status: 'CANCELLED', danger: true, needsReason: true });
@@ -104,6 +105,68 @@ function RequestImageGallery({ requestId, isAdmin, isOwner, requestStatus, onMod
   );
 }
 
+function MessagesPanel({ requestId, currentUsername }) {
+  const [messages, setMessages] = useState(null);
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState(null);
+
+  const load = () => {
+    listMessages(requestId).then(setMessages).catch(() => setMessages([]));
+  };
+
+  useEffect(load, [requestId]);
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!draft.trim()) return;
+    setSending(true);
+    setError(null);
+    try {
+      await sendMessage(requestId, draft.trim());
+      setDraft('');
+      load();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to send message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="messages-panel">
+      <h3>Messages</h3>
+      <p className="hint-text">Coordinate directly about this request — visible only to the two of you.</p>
+
+      <div className="messages-list">
+        {messages === null ? (
+          <p className="hint-text">Loading…</p>
+        ) : messages.length === 0 ? (
+          <p className="hint-text">No messages yet — say hello.</p>
+        ) : (
+          messages.map((m) => (
+            <div key={m.id} className={'message-bubble' + (m.senderUsername === currentUsername ? ' message-bubble-own' : '')}>
+              <div className="message-bubble-meta">{m.senderUsername} · {new Date(m.createdDate).toLocaleString()}</div>
+              <div>{m.content}</div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <form onSubmit={handleSend} className="messages-compose">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Type a message…"
+          maxLength={2000}
+        />
+        <button type="submit" disabled={sending || !draft.trim()}>Send</button>
+      </form>
+      {error && <p className="form-error">{error}</p>}
+    </div>
+  );
+}
+
 export default function RequestDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -119,6 +182,7 @@ export default function RequestDetailPage() {
   const [courierDetails, setCourierDetails] = useState('');
 
   const isAdmin = hasRole('ADMINISTRATOR');
+  const isOwningHome = hasRole('CHILDRENS_HOME');
 
   const load = async () => {
     setLoading(true);
@@ -137,6 +201,8 @@ export default function RequestDetailPage() {
 
   const handleAction = async (action) => {
     if (action.needsDelivery) {
+      setDeliveryMethod('SELF_DELIVERY');
+      setCourierDetails('');
       setPendingDeliveryAction(action);
       return;
     }
@@ -166,12 +232,33 @@ export default function RequestDetailPage() {
     e.preventDefault();
     setActionLoading(true);
     try {
-      await changeRequestStatus(id, pendingDeliveryAction.status, null, deliveryMethod, courierDetails);
+      const detailsToSend = pendingDeliveryAction.status === 'PLEDGED' ? null : courierDetails;
+      await changeRequestStatus(id, pendingDeliveryAction.status, null, deliveryMethod, detailsToSend);
       setPendingDeliveryAction(null);
       setCourierDetails('');
       load();
     } catch (err) {
       await modal.alertDialog({ title: 'Action failed', message: err.response?.data?.message || 'Please try again.' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleArrangeAlternativeDelivery = async () => {
+    const courierInfo = await modal.promptDialog({
+      title: 'Arrange alternative delivery',
+      message: 'The volunteer pickup hasn\'t progressed. Describe the alternative arrangement (e.g. courier company and tracking number).',
+      placeholder: 'e.g. Pronto Courier, tracking #12345',
+      confirmLabel: 'Arrange',
+      required: true
+    });
+    if (!courierInfo) return;
+    setActionLoading(true);
+    try {
+      await arrangeAlternativeDelivery(id, courierInfo);
+      load();
+    } catch (err) {
+      await modal.alertDialog({ title: 'Failed to arrange delivery', message: err.response?.data?.message || 'Please try again.' });
     } finally {
       setActionLoading(false);
     }
@@ -245,6 +332,18 @@ export default function RequestDetailPage() {
             </strong>
           </div>
         )}
+        {isOwningHome && request.deliveryMethod === 'VOLUNTEER_PICKUP'
+          && !['DELIVERED', 'COMPLETED', 'CANCELLED'].includes(request.status) && (
+          <div style={{ marginTop: '0.5rem' }}>
+            <p className="hint-text">
+              A delivery volunteer was requested for this pledge. If it's been about a week with no progress,
+              you can arrange your own alternative (e.g. a courier) instead.
+            </p>
+            <button type="button" onClick={handleArrangeAlternativeDelivery} disabled={actionLoading}>
+              Arrange Alternative Delivery
+            </button>
+          </div>
+        )}
         {request.status === 'CANCELLED' && request.cancellationReason && (
           <p className="form-error">Cancelled: {request.cancellationReason}</p>
         )}
@@ -276,7 +375,47 @@ export default function RequestDetailPage() {
           </p>
         )}
 
-        {pendingDeliveryAction && (
+        {pendingDeliveryAction && pendingDeliveryAction.status === 'PLEDGED' ? (
+          <form onSubmit={handleDeliverySubmit} className="stacked-form" style={{ marginTop: '1rem' }}>
+            <p className="hint-text" style={{ marginTop: 0 }}>
+              How will this donation reach the home?
+            </p>
+            <label>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="radio"
+                  name="pledgeDeliveryChoice"
+                  value="SELF_DELIVERY"
+                  checked={deliveryMethod === 'SELF_DELIVERY'}
+                  onChange={(e) => setDeliveryMethod(e.target.value)}
+                />
+                I'll deliver it myself
+              </span>
+            </label>
+            <label>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="radio"
+                  name="pledgeDeliveryChoice"
+                  value="VOLUNTEER_PICKUP"
+                  checked={deliveryMethod === 'VOLUNTEER_PICKUP'}
+                  onChange={(e) => setDeliveryMethod(e.target.value)}
+                />
+                I need a delivery volunteer to pick it up
+              </span>
+            </label>
+            <p className="hint-text">
+              If you request a volunteer and nothing progresses within about a week, the home will be notified
+              and can arrange an alternative — your pledge stays credited to you either way.
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button type="submit" disabled={actionLoading}>
+                {actionLoading ? 'Saving…' : 'Confirm Pledge'}
+              </button>
+              <button type="button" onClick={() => setPendingDeliveryAction(null)}>Cancel</button>
+            </div>
+          </form>
+        ) : pendingDeliveryAction && (
           <form onSubmit={handleDeliverySubmit} className="stacked-form" style={{ marginTop: '1rem' }}>
             <label>
               Delivery Method
@@ -332,6 +471,11 @@ export default function RequestDetailPage() {
           canRate={hasRole('CHILDRENS_HOME')}
           pledgedByUsername={request.pledgedByUsername}
         />
+      )}
+
+      {!['CREATED', 'PLEDGED', 'CANCELLED'].includes(request.status)
+        && (isOwningHome || request.pledgedByUsername === user?.username || isAdmin) && (
+        <MessagesPanel requestId={request.id} currentUsername={user?.username} />
       )}
 
       <div className="status-timeline">

@@ -848,38 +848,72 @@ body {
   font-size: 0.8rem;
 }
 
-.document-upload-form {
+.doc-type-row-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
-.document-upload-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  font-size: 0.85rem;
-}
-
-.document-upload-form input,
-.document-upload-form select {
-  padding: 0.5rem 0.6rem;
+.doc-type-row {
   border: 1px solid var(--hh-border);
-  border-radius: 6px;
-  font: inherit;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
 }
 
-.document-upload-form button {
-  padding: 0.6rem;
-  background: var(--hh-primary);
-  color: white;
-  border: none;
-  border-radius: 8px;
+.doc-type-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.6rem;
+}
+
+.doc-type-row-label {
   font-weight: 600;
-  cursor: pointer;
+  font-size: 0.88rem;
 }
 
-.document-upload-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+.doc-type-row-status {
+  font-size: 0.8rem;
+  color: #9a9d95;
+}
+
+.doc-type-row-status-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--hh-primary);
+}
+
+.doc-type-row-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.doc-type-row-actions button,
+.btn-file-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--hh-primary);
+  background: none;
+  color: var(--hh-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.doc-type-row-actions button:hover,
+.btn-file-select:hover {
+  background: rgba(31, 111, 80, 0.06);
+}
+
+.doc-type-row-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 .applicant-documents {
   margin-top: 0.5rem;
@@ -1810,3 +1844,72 @@ body {
   font-size: 0.8rem;
   color: #9a9d95;
 }
+
+/* ---- Request messaging panel ---- */
+
+.messages-panel {
+  margin-top: 1.5rem;
+  max-width: 560px;
+  background: white;
+  border: 1px solid var(--hh-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.messages-panel h3 { margin-top: 0; margin-bottom: 0.2rem; }
+
+.messages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 1rem 0;
+  padding-right: 0.25rem;
+}
+
+.message-bubble {
+  align-self: flex-start;
+  max-width: 85%;
+  background: #f3f4f1;
+  border-radius: 12px 12px 12px 4px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.88rem;
+}
+
+.message-bubble-own {
+  align-self: flex-end;
+  background: rgba(31, 111, 80, 0.12);
+  border-radius: 12px 12px 4px 12px;
+}
+
+.message-bubble-meta {
+  font-size: 0.72rem;
+  color: #9a9d95;
+  margin-bottom: 0.2rem;
+}
+
+.messages-compose {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.messages-compose input {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--hh-border);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.messages-compose button {
+  padding: 0.6rem 1.1rem;
+  background: var(--hh-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.messages-compose button:disabled { opacity: 0.5; cursor: not-allowed; }

@@ -99,7 +99,16 @@ public class DocumentService {
                                     String remarks, MultipartFile file) {
         validateFile(file);
         assertCanUpload(ownerType, ownerId);
-        assertNoDuplicate(ownerType, ownerId, documentType, file.getOriginalFilename());
+
+        // Verification documents (Home/Provider) are one-per-type: uploading
+        // a new certificate/report of a type that already has one replaces
+        // it, rather than piling up duplicates an admin has to sort through
+        // to find the current one. Request images are the one deliberate
+        // exception — a Home naturally wants several photos per request,
+        // so those keep accumulating freely.
+        if (ownerType != DocumentOwnerType.REQUEST) {
+            replaceExistingOfSameType(ownerType, ownerId, documentType);
+        }
 
         String subFolder = ownerType.name().toLowerCase();
         String storageKey = fileStorageService.store(file, subFolder);
@@ -149,15 +158,14 @@ public class DocumentService {
         }
     }
 
-    private void assertNoDuplicate(DocumentOwnerType ownerType, Long ownerId, DocumentType documentType, String fileName) {
-        boolean duplicate = documentRepository.findByOwnerTypeAndOwnerIdAndIsActiveTrue(ownerType, ownerId)
-                .stream()
-                .anyMatch(d -> d.getDocumentType() == documentType && d.getOriginalFileName().equals(fileName));
-        if (duplicate) {
-            throw new ApiException(
-                    "A document of this type with the same file name has already been uploaded",
-                    HttpStatus.CONFLICT);
-        }
+    private void replaceExistingOfSameType(DocumentOwnerType ownerType, Long ownerId, DocumentType documentType) {
+        documentRepository.findByOwnerTypeAndOwnerIdAndIsActiveTrue(ownerType, ownerId).stream()
+                .filter(d -> d.getDocumentType() == documentType)
+                .forEach(d -> {
+                    d.setIsActive(false);
+                    d.setModifiedDate(java.time.LocalDateTime.now());
+                    documentRepository.save(d);
+                });
     }
 
     /**

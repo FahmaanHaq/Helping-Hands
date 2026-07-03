@@ -658,3 +658,50 @@ exactly one is ever active regardless of which you choose.
 **If none of Resend/SendGrid/Brevo work out**, Mailgun and Postmark follow
 the same single-sender-or-domain pattern and could be added the same way —
 just say the word.
+
+## Multi-Document Upload, Delivery Volunteer Choice, and Request Messaging
+
+### Document uploads — now one-per-type with instant replace
+The backend already supported multiple documents; the real gap was the
+upload form only handling one file per submission. Redesigned
+`DocumentUploadWidget`:
+- **Children's Home / Service Provider profiles**: one row per required
+  document type, each with its own instant upload/replace button — no
+  separate type dropdown needed, and uploading a new file for a type that
+  already has one automatically replaces it (enforced server-side too, in
+  `DocumentService.replaceExistingOfSameType`).
+- **Request images**: the one deliberate exception — a multi-file picker
+  that lets a Home select several photos at once, all of which accumulate
+  (never replaced), since multiple photos per request is the whole point.
+
+### Delivery Volunteer choice at pledge time
+A Donor/Delivery-Volunteer pledging to a GOODS request now chooses upfront:
+**"I'll deliver it myself"** or **"I need a delivery volunteer."** This is
+stored on the request immediately (reusing the existing `deliveryMethod`
+field, now also settable at the PLEDGED transition, not just later).
+
+If a volunteer pickup is chosen and there's no progress after 7 days, a new
+scheduled check (`SystemMaintenanceService.findStalledVolunteerPickup`)
+notifies the Home. The Home can then click **"Arrange Alternative
+Delivery"** on the request page, describe the arrangement (e.g. a courier
+they're paying for), and the system records it — the original Donor's
+pledge stays credited to them either way, they're just notified that
+logistics changed.
+
+### Request messaging
+A lightweight chat, scoped to one request, between exactly the two people
+involved: the owning Children's Home and whoever pledged. Opens once a
+pledge is **accepted** (not before — a Home shouldn't field messages from
+every interested Donor before committing to one) and stays available
+through the rest of the lifecycle. Each message triggers a notification to
+the other party. New `request_messages` table, `RequestMessageService`
+enforcing the two-participant-only access rule in one place shared by both
+sending and reading.
+
+### Required setup for this batch
+
+Run the new migration on Neon:
+```sql
+-- database/012_schema_messaging.sql
+```
+No new environment variables needed.

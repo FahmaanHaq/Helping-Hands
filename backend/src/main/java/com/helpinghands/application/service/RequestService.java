@@ -175,7 +175,7 @@ public class RequestService {
             request.setCancellationReason(change.remarks());
         }
         if (request.isGoods() && change.deliveryMethod() != null
-                && (to == RequestStatus.IN_PROGRESS || to == RequestStatus.DELIVERED)) {
+                && (to == RequestStatus.PLEDGED || to == RequestStatus.IN_PROGRESS || to == RequestStatus.DELIVERED)) {
             request.setDeliveryMethod(change.deliveryMethod());
             request.setCourierDetails(change.courierDetails());
         }
@@ -249,7 +249,54 @@ public class RequestService {
         return toResponse(saved);
     }
 
-    // ---- Transition rules ----
+    /**
+     * Answers the specific scenario: a Donor pledged and chose "request a
+     * delivery volunteer," but no volunteer transport has materialized
+     * within a reasonable window (the scheduled reminder in
+     * SystemMaintenanceService flags this after 7 days). Rather than
+     * cancelling the Donor's pledge outright — they still supplied the
+     * goods — the owning Home can take over logistics by arranging their
+     * own alternative (e.g. a courier they pay for), recorded here without
+     * disturbing who gets credit/rated for the donation itself.
+     */
+    @Transactional
+    public RequestResponse arrangeAlternativeDelivery(Long id, String courierDetails) {
+        Request request = findOrThrow(id);
+        User homeUser = currentUserResolver.getCurrentVerifiedUser();
+
+        if (!request.getChildrensHome().getUser().getId().equals(homeUser.getId())) {
+            throw new ApiException("Only the requesting home can arrange alternative delivery", HttpStatus.FORBIDDEN);
+        }
+        if (!request.isGoods()) {
+            throw new ApiException("Alternative delivery only applies to goods requests", HttpStatus.BAD_REQUEST);
+        }
+        if (request.getDeliveryMethod() != DeliveryMethod.VOLUNTEER_PICKUP) {
+            throw new ApiException(
+                    "Alternative delivery only applies when a volunteer pickup was requested and hasn't progressed",
+                    HttpStatus.CONFLICT);
+        }
+        if (request.getStatus() == RequestStatus.DELIVERED || request.getStatus() == RequestStatus.COMPLETED
+                || request.getStatus() == RequestStatus.CANCELLED) {
+            throw new ApiException("This request has already moved past needing a delivery arrangement", HttpStatus.CONFLICT);
+        }
+
+        request.setDeliveryMethod(DeliveryMethod.COURIER);
+        request.setCourierDetails(courierDetails);
+        Request saved = requestRepository.save(request);
+
+        auditLogService.record("DELIVERY_ALTERNATIVE_ARRANGED", "REQUEST", id,
+                "Home arranged courier delivery after volunteer pickup stalled: " + courierDetails);
+
+        if (request.getPledgedBy() != null) {
+            notificationService.notify(request.getPledgedBy(), NotificationType.DELIVERY_ALTERNATIVE_ARRANGED,
+                    "Alternative Delivery Arranged",
+                    "\"" + request.getTitle() + "\" — the volunteer pickup hadn't progressed, so " + homeUser.getUsername()
+                            + " arranged a courier instead. Your pledge is still credited to you.",
+                    "/requests/" + request.getId());
+        }
+
+        return toResponse(saved);
+    }
 
     private static final Set<RequestStatus> CANCELLABLE_FROM = Set.of(RequestStatus.CREATED, RequestStatus.PLEDGED);
 
