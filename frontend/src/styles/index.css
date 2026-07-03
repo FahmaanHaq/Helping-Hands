@@ -1613,3 +1613,193 @@ body {
 .input-invalid {
   border-color: var(--hh-error) !important;
 }
+
+/* ============================================================
+   Landing page polish — floating gift motifs, trust badges,
+   "Why Helping Hands", closing CTA, and footer.
+   ============================================================ */
+
+.floating-gifts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.floating-gift {
+  position: absolute;
+  color: #f5c542;
+  opacity: 0.55;
+  animation: gift-float 5s ease-in-out infinite;
+}
+
+@keyframes gift-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.4; }
+  50% { transform: translateY(-14px) rotate(-6deg); opacity: 0.75; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating-gift { animation: none; }
+}
+
+@media (max-width: 860px) {
+  .floating-gifts { display: none; }
+}
+
+/* Trust badges strip */
+
+.trust-badges {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.75rem;
+}
+
+.trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.trust-badge svg { color: #f5c542; }
+
+/* Why Helping Hands */
+
+.why-us-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.why-us-card {
+  background: white;
+  border: 1px solid var(--hh-border);
+  border-radius: 16px;
+  padding: 1.75rem 1.5rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.why-us-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(22, 35, 27, 0.09);
+}
+
+.why-us-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.why-us-card h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.02rem;
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.why-us-card p {
+  margin: 0;
+  font-size: 0.87rem;
+  color: #6b6f68;
+  line-height: 1.5;
+}
+
+/* Nicer empty state for Featured Requests */
+
+.featured-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(31, 111, 80, 0.08);
+  color: var(--hh-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.85rem;
+}
+
+.featured-empty {
+  text-align: center;
+}
+
+/* Closing CTA banner */
+
+.closing-cta {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: white;
+  background:
+    radial-gradient(ellipse 500px 300px at 15% 0%, rgba(245, 197, 66, 0.16), transparent 60%),
+    linear-gradient(135deg, #16231b 0%, #1f3d2c 55%, #1f6f50 100%);
+}
+
+.closing-cta h2 {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1.8rem;
+  margin: 0 0 0.6rem;
+}
+
+.closing-cta p {
+  color: rgba(255, 255, 255, 0.78);
+  max-width: 480px;
+  margin: 0 auto 1.5rem;
+}
+
+.closing-cta-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+/* Footer */
+
+.public-footer {
+  border-top: 1px solid var(--hh-border);
+  padding: 2.5rem 0;
+  margin-top: 1rem;
+}
+
+.public-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.public-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  color: var(--hh-primary);
+}
+
+.public-footer-tagline {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: #9a9d95;
+  margin-top: 0.1rem;
+}
+
+.public-footer-meta {
+  font-size: 0.8rem;
+  color: #9a9d95;
+}
