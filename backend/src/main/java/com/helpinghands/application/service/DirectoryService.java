@@ -6,10 +6,10 @@ import com.helpinghands.domain.entity.User;
 import com.helpinghands.infrastructure.repository.RatingRepository;
 import com.helpinghands.infrastructure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 /**
  * Answers the SRS's "View Donors" use case for Children's Homes. Deliberately
@@ -24,17 +24,13 @@ public class DirectoryService {
     private final RatingRepository ratingRepository;
 
     @Transactional(readOnly = true)
-    public List<DirectoryUserResponse> listDonors() {
-        return userRepository.findAllActiveByRoleName(RoleName.DONOR).stream()
-                .map(this::toResponse)
-                .toList();
+    public Page<DirectoryUserResponse> listDonors(Pageable pageable) {
+        return userRepository.findAllActiveByRoleName(RoleName.DONOR, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
-    public List<DirectoryUserResponse> listServiceProviders() {
-        return userRepository.findAllActiveByRoleName(RoleName.SERVICE_PROVIDER).stream()
-                .map(this::toResponse)
-                .toList();
+    public Page<DirectoryUserResponse> listServiceProviders(Pageable pageable) {
+        return userRepository.findAllActiveByRoleName(RoleName.SERVICE_PROVIDER, pageable).map(this::toResponse);
     }
 
     private DirectoryUserResponse toResponse(User user) {

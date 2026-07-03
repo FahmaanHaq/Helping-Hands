@@ -33,6 +33,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT DISTINCT u FROM User u JOIN u.roles r WHERE r.name = :roleName AND u.isActive = true")
     java.util.List<User> findAllActiveByRoleName(@Param("roleName") com.helpinghands.domain.entity.RoleName roleName);
 
+    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name = :roleName AND u.isActive = true")
+    org.springframework.data.domain.Page<User> findAllActiveByRoleName(
+            @Param("roleName") com.helpinghands.domain.entity.RoleName roleName, org.springframework.data.domain.Pageable pageable);
+
     long countByAccountLockedTrue();
 
     @Query("SELECT u FROM User u WHERE u.isActive = true AND " +

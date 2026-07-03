@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Flag } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { getRequest, getRequestHistory, changeRequestStatus } from '../services/requestService';
-import { listDocuments, downloadDocument } from '../services/documentService';
+import { listDocuments, downloadDocument, removeOwnDocument } from '../services/documentService';
 import { flagRequest, removeDocument } from '../services/moderationService';
 import RequestStatusBadge from '../components/RequestStatusBadge.jsx';
 import DocumentUploadWidget from '../components/DocumentUploadWidget.jsx';
 import RatingWidget from '../components/RatingWidget.jsx';
 import ReputationBadge from '../components/ReputationBadge.jsx';
+import { useModal } from '../hooks/useModal';
 
 function getAvailableActions(request, user, hasRole) {
   const actions = [];
@@ -54,8 +55,9 @@ function getAvailableActions(request, user, hasRole) {
   return actions;
 }
 
-function RequestImageGallery({ requestId, isAdmin }) {
+function RequestImageGallery({ requestId, isAdmin, isOwner, requestStatus, onModal }) {
   const [images, setImages] = useState(null);
+  const canOwnerRemove = isOwner && requestStatus === 'CREATED';
 
   const load = () => {
     listDocuments('REQUEST', requestId).then(setImages).catch(() => setImages([]));
@@ -64,12 +66,21 @@ function RequestImageGallery({ requestId, isAdmin }) {
   useEffect(load, [requestId]);
 
   const handleRemove = async (doc) => {
-    if (!window.confirm(`Remove "${doc.originalFileName}"? This only removes the image, not the request.`)) return;
+    const ok = await onModal.confirmDialog({
+      title: `Remove "${doc.originalFileName}"?`,
+      message: 'This only removes the image, not the request itself.',
+      danger: true
+    });
+    if (!ok) return;
     try {
-      await removeDocument(doc.id);
+      if (isAdmin) {
+        await removeDocument(doc.id);
+      } else {
+        await removeOwnDocument(doc.id);
+      }
       load();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to remove');
+      await onModal.alertDialog({ title: 'Failed to remove', message: err.response?.data?.message || 'Please try again.' });
     }
   };
 
@@ -83,7 +94,7 @@ function RequestImageGallery({ requestId, isAdmin }) {
           <span>{doc.originalFileName}</span>
           <span style={{ display: 'flex', gap: '0.4rem' }}>
             <button type="button" onClick={() => downloadDocument(doc.id, doc.originalFileName)}>Download</button>
-            {isAdmin && (
+            {(isAdmin || canOwnerRemove) && (
               <button type="button" className="btn-danger" onClick={() => handleRemove(doc)}>Remove</button>
             )}
           </span>
@@ -97,6 +108,7 @@ export default function RequestDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, hasRole } = useAuth();
+  const modal = useModal();
   const [request, setRequest] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -130,7 +142,13 @@ export default function RequestDetailPage() {
     }
     let remarks = null;
     if (action.needsReason) {
-      remarks = window.prompt('Reason:');
+      remarks = await modal.promptDialog({
+        title: action.label + '?',
+        placeholder: 'Reason',
+        confirmLabel: action.label,
+        danger: action.danger,
+        required: true
+      });
       if (!remarks) return;
     }
     setActionLoading(true);
@@ -138,7 +156,7 @@ export default function RequestDetailPage() {
       await changeRequestStatus(id, action.status, remarks);
       load();
     } catch (err) {
-      alert(err.response?.data?.message || 'Action failed');
+      await modal.alertDialog({ title: 'Action failed', message: err.response?.data?.message || 'Please try again.' });
     } finally {
       setActionLoading(false);
     }
@@ -153,22 +171,34 @@ export default function RequestDetailPage() {
       setCourierDetails('');
       load();
     } catch (err) {
-      alert(err.response?.data?.message || 'Action failed');
+      await modal.alertDialog({ title: 'Action failed', message: err.response?.data?.message || 'Please try again.' });
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleToggleFlag = async () => {
-    if (!request.flagged) {
-      const reason = window.prompt('Reason for flagging this request:');
-      if (!reason) return;
-      await flagRequest(request.id, true, reason);
-    } else {
-      if (!window.confirm('Clear the flag on this request?')) return;
-      await flagRequest(request.id, false, null);
+    try {
+      if (!request.flagged) {
+        const reason = await modal.promptDialog({
+          title: 'Flag this request?',
+          message: 'It will be hidden from the public marketplace until cleared.',
+          placeholder: 'Reason for flagging',
+          confirmLabel: 'Flag',
+          danger: true,
+          required: true
+        });
+        if (!reason) return;
+        await flagRequest(request.id, true, reason);
+      } else {
+        const ok = await modal.confirmDialog({ title: 'Clear the flag on this request?' });
+        if (!ok) return;
+        await flagRequest(request.id, false, null);
+      }
+      load();
+    } catch (err) {
+      await modal.alertDialog({ title: 'Failed to update flag', message: err.response?.data?.message || 'Please try again.' });
     }
-    load();
   };
 
   if (loading) return <div className="page">Loading…</div>;
@@ -277,7 +307,13 @@ export default function RequestDetailPage() {
         {canUploadImages ? (
           <DocumentUploadWidget ownerType="REQUEST" ownerId={request.id} allowedTypes={['REQUEST_IMAGE']} />
         ) : (
-          <RequestImageGallery requestId={request.id} isAdmin={isAdmin} />
+          <RequestImageGallery
+            requestId={request.id}
+            isAdmin={isAdmin}
+            isOwner={hasRole('CHILDRENS_HOME')}
+            requestStatus={request.status}
+            onModal={modal}
+          />
         )}
       </div>
 

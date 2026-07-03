@@ -55,4 +55,17 @@ public class DocumentController {
                         ContentDisposition.attachment().filename(payload.fileName()).build().toString())
                 .body(new InputStreamResource(payload.stream()));
     }
+
+    /**
+     * Self-service removal for the owning Children's Home's own request
+     * images — distinct from the admin-only moderation removal at
+     * /api/v1/admin/moderation/documents/{id}. See DocumentService.removeOwnRequestImage
+     * for the exact rules (REQUEST images only, only while status is CREATED).
+     */
+    @DeleteMapping("/{id}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('CHILDRENS_HOME')")
+    public ApiResponse<Void> removeOwn(@PathVariable Long id) {
+        documentService.removeOwnRequestImage(id);
+        return ApiResponse.ok("Document removed", null);
+    }
 }

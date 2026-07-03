@@ -71,6 +71,13 @@ public class ServiceProvider extends BaseEntity {
     @Column(name = "rejection_reason", length = 1000)
     private String rejectionReason;
 
+    /**
+     * Counts resubmissions after a rejection — NOT the initial submission.
+     * See ChildrensHome.resubmissionCount for the same rationale.
+     */
+    @Column(name = "resubmission_count", nullable = false)
+    private Integer resubmissionCount = 0;
+
     @Column(name = "reviewed_by", length = 150)
     private String reviewedBy;
 

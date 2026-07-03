@@ -24,6 +24,10 @@ spring:
 
   jackson:
     default-property-inclusion: non_null
+    deserialization:
+      # A stray extra field from the frontend (e.g. a client-only form field
+      # accidentally left in a payload) should never hard-fail an endpoint.
+      fail-on-unknown-properties: false
 
   servlet:
     multipart:

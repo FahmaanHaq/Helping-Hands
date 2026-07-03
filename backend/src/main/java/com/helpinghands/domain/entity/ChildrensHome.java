@@ -58,6 +58,14 @@ public class ChildrensHome extends BaseEntity {
     @Column(name = "rejection_reason", length = 1000)
     private String rejectionReason;
 
+    /**
+     * Counts resubmissions after a rejection — NOT the initial submission.
+     * A home can resubmit up to MAX_RESUBMISSIONS times (see ChildrensHomeService)
+     * before being permanently stuck at REJECTED with no further self-service path.
+     */
+    @Column(name = "resubmission_count", nullable = false)
+    private Integer resubmissionCount = 0;
+
     @Column(name = "reviewed_by", length = 150)
     private String reviewedBy;
 

@@ -61,13 +61,13 @@ export default function HomePage() {
             children&apos;s homes. Transparent, verified, and accountable at every step.
           </p>
           <div className="public-hero-ctas">
-            <Link to="/register" className="btn-primary">
+            <Link to="/register?role=DONOR" className="btn-primary">
               <Package size={16} /> Donate Goods
             </Link>
-            <Link to="/register" className="btn-secondary">
+            <Link to="/register?role=SERVICE_PROVIDER" className="btn-secondary">
               <HeartHandshake size={16} /> Offer Services
             </Link>
-            <Link to="/register" className="btn-secondary">
+            <Link to="/register?role=DELIVERY_VOLUNTEER" className="btn-secondary">
               <Truck size={16} /> Volunteer for Delivery
             </Link>
           </div>

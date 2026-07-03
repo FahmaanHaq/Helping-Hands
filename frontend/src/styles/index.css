@@ -1247,3 +1247,120 @@ body {
   margin: 0 auto 0.75rem;
   box-shadow: 0 4px 12px rgba(31, 111, 80, 0.25);
 }
+
+/* ---- Modal dialogs (replaces window.confirm/prompt/alert) ---- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(22, 35, 27, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 1rem;
+  animation: modal-fade-in 0.15s ease;
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-card {
+  background: white;
+  border-radius: 14px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 16px 48px rgba(22, 35, 27, 0.25);
+}
+
+.modal-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.modal-message {
+  margin: 0 0 1rem;
+  color: #4c5148;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--hh-border);
+  border-radius: 8px;
+  font: inherit;
+  resize: vertical;
+  margin-bottom: 1rem;
+}
+
+.modal-input:focus {
+  outline: none;
+  border-color: var(--hh-primary);
+  box-shadow: 0 0 0 3px rgba(31, 111, 80, 0.12);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.modal-btn-primary, .modal-btn-secondary, .modal-btn-danger {
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: none;
+}
+
+.modal-btn-primary { background: var(--hh-primary); color: white; }
+.modal-btn-primary:hover { background: var(--hh-primary-dark); }
+.modal-btn-danger { background: var(--hh-error); color: white; }
+.modal-btn-danger:hover { opacity: 0.9; }
+.modal-btn-secondary { background: #f0f1ee; color: var(--hh-text); }
+.modal-btn-secondary:hover { background: #e5e7e1; }
+.modal-btn-primary:disabled, .modal-btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---- Password visibility toggle ---- */
+
+.password-field-wrapper {
+  position: relative;
+}
+
+.password-field-wrapper input {
+  width: 100%;
+  padding-right: 2.5rem;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #8a8d85;
+  display: flex;
+  padding: 0.25rem;
+}
+
+.password-toggle-btn:hover { color: var(--hh-text); }
+
+/* ---- Field-level inline validation ---- */
+
+.field-error-text {
+  color: var(--hh-error);
+  font-size: 0.78rem;
+  margin-top: 0.2rem;
+}
+
+.input-invalid {
+  border-color: var(--hh-error) !important;
+}

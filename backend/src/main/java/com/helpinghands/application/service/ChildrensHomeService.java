@@ -23,6 +23,8 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class ChildrensHomeService {
 
+    public static final int MAX_RESUBMISSIONS = 3;
+
     private final ChildrensHomeRepository childrensHomeRepository;
     private final CurrentUserResolver currentUserResolver;
     private final AuditLogService auditLogService;
@@ -92,8 +94,58 @@ public class ChildrensHomeService {
                 ? NotificationType.VERIFICATION_APPROVED : NotificationType.VERIFICATION_REJECTED;
         String message = decision.decision() == VerificationStatus.APPROVED
                 ? "Your Children's Home \"" + home.getHomeName() + "\" has been approved. You can now post requests."
-                : "Your Children's Home \"" + home.getHomeName() + "\" registration was rejected: " + decision.rejectionReason();
+                : "Your Children's Home \"" + home.getHomeName() + "\" registration was rejected: " + decision.rejectionReason()
+                        + " You may correct the issue and resubmit (up to " + MAX_RESUBMISSIONS + " times).";
         notificationService.notify(home.getUser(), notificationType, "Verification Decision", message, "/childrens-home");
+
+        return toResponse(saved);
+    }
+
+    /**
+     * Lets a home fix a fixable problem (typo, wrong document) and try again,
+     * rather than being permanently stuck after one rejection. Bounded to
+     * MAX_RESUBMISSIONS so this can't be used to spam the verification queue
+     * indefinitely — after the limit, the only path forward is contacting
+     * an administrator directly.
+     */
+    @Transactional
+    public ChildrensHomeResponse resubmit(ChildrensHomeRegistrationRequest request) {
+        User user = currentUserResolver.getCurrentUser();
+        ChildrensHome home = childrensHomeRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ApiException("No Children's Home profile found for this account", HttpStatus.NOT_FOUND));
+
+        if (home.getVerificationStatus() != VerificationStatus.REJECTED) {
+            throw new ApiException("Only a rejected profile can be resubmitted", HttpStatus.CONFLICT);
+        }
+        if (home.getResubmissionCount() >= MAX_RESUBMISSIONS) {
+            throw new ApiException(
+                    "You have reached the maximum of " + MAX_RESUBMISSIONS + " resubmissions. Please contact an administrator.",
+                    HttpStatus.FORBIDDEN);
+        }
+
+        // Registration number uniqueness check must exclude this home's own
+        // existing row, otherwise every resubmission with an unchanged
+        // registration number would incorrectly collide with itself.
+        if (!home.getRegistrationNumber().equals(request.registrationNumber())
+                && childrensHomeRepository.existsByRegistrationNumber(request.registrationNumber())) {
+            throw new ApiException("This registration number is already in use", HttpStatus.CONFLICT);
+        }
+
+        home.setHomeName(request.homeName());
+        home.setRegistrationNumber(request.registrationNumber());
+        home.setContactNumber(request.contactNumber());
+        home.setContactEmail(request.contactEmail());
+        home.setAddress(request.address());
+        home.setDescription(request.description());
+        home.setVerificationStatus(VerificationStatus.SUBMITTED);
+        home.setRejectionReason(null);
+        home.setReviewedBy(null);
+        home.setReviewedDate(null);
+        home.setResubmissionCount(home.getResubmissionCount() + 1);
+
+        ChildrensHome saved = childrensHomeRepository.save(home);
+        auditLogService.record("CHILDRENS_HOME_RESUBMITTED", "CHILDRENS_HOME", home.getId(),
+                "Resubmission " + saved.getResubmissionCount() + " of " + MAX_RESUBMISSIONS);
 
         return toResponse(saved);
     }
@@ -111,6 +163,8 @@ public class ChildrensHomeService {
                 home.getRejectionReason(),
                 home.getReviewedBy(),
                 home.getReviewedDate(),
+                home.getResubmissionCount(),
+                Math.max(0, MAX_RESUBMISSIONS - home.getResubmissionCount()),
                 home.getCreatedDate()
         );
     }

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { resetPassword } from '../services/authService';
 import Logomark from '../components/Logomark.jsx';
 import HeroNetwork from '../components/HeroNetwork.jsx';
+import PasswordField from '../components/PasswordField.jsx';
 
 function BrandMark() {
   return (
@@ -79,11 +80,11 @@ export default function ResetPasswordPage() {
 
         <label>
           New Password
-          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8} required />
+          <PasswordField name="newPassword" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8} autoComplete="new-password" required />
         </label>
         <label>
           Confirm Password
-          <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} minLength={8} required />
+          <PasswordField name="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} minLength={8} autoComplete="new-password" required />
         </label>
 
         {error && <p className="form-error">{error}</p>}

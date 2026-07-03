@@ -9,3 +9,8 @@ export async function getMyServiceProvider() {
   const { data } = await api.get('/service-providers/me');
   return data.data;
 }
+
+export async function resubmitServiceProvider(payload) {
+  const { data } = await api.put('/service-providers/me/resubmit', payload);
+  return data.data;
+}

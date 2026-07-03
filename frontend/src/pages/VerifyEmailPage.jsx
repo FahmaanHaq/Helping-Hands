@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { verifyEmail } from '../services/authService';
 import { useAuth } from '../hooks/useAuth';
@@ -12,6 +12,7 @@ export default function VerifyEmailPage() {
 
   const [status, setStatus] = useState('loading'); // loading | success | error
   const [message, setMessage] = useState('');
+  const hasRun = useRef(false); // prevents a double-invoke (e.g. StrictMode) from consuming the single-use token twice
 
   useEffect(() => {
     if (!token) {
@@ -19,6 +20,9 @@ export default function VerifyEmailPage() {
       setMessage('This verification link is missing its token.');
       return;
     }
+    if (hasRun.current) return;
+    hasRun.current = true;
+
     verifyEmail(token)
       .then((msg) => {
         setStatus('success');

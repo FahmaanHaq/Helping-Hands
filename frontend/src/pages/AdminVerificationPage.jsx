@@ -6,8 +6,10 @@ import {
 import StatusBadge from '../components/StatusBadge.jsx';
 import ApplicantDocuments from '../components/ApplicantDocuments.jsx';
 import Pagination from '../components/Pagination.jsx';
+import { useModal } from '../hooks/useModal';
 
 export default function AdminVerificationPage() {
+  const { promptDialog, confirmDialog, alertDialog } = useModal();
   const [homesPage, setHomesPage] = useState(null);
   const [providersPage, setProvidersPage] = useState(null);
   const [homesPageNum, setHomesPageNum] = useState(0);
@@ -37,14 +39,20 @@ export default function AdminVerificationPage() {
   const handleHomeDecision = async (id, decision) => {
     let reason = null;
     if (decision === 'REJECTED') {
-      reason = window.prompt('Reason for rejection:');
+      reason = await promptDialog({
+        title: 'Reject this Children\'s Home?',
+        placeholder: 'Reason for rejection',
+        confirmLabel: 'Reject',
+        danger: true,
+        required: true
+      });
       if (!reason) return;
     }
     try {
       await decideChildrensHome(id, decision, reason);
       loadAll();
     } catch (err) {
-      alert(err.response?.data?.message || 'Decision failed');
+      await alertDialog({ title: 'Decision failed', message: err.response?.data?.message || 'Please try again.' });
     }
   };
 
@@ -52,20 +60,28 @@ export default function AdminVerificationPage() {
     let reason = null;
     let clearanceVerified = undefined;
     if (decision === 'REJECTED') {
-      reason = window.prompt('Reason for rejection:');
+      reason = await promptDialog({
+        title: 'Reject this Service Provider?',
+        placeholder: 'Reason for rejection',
+        confirmLabel: 'Reject',
+        danger: true,
+        required: true
+      });
       if (!reason) return;
     }
     if (decision === 'APPROVED' && policeClearanceRequired) {
-      clearanceVerified = window.confirm(
-        'This provider is onsite and requires police clearance. Click OK to confirm you\'ve verified their clearance document, or Cancel to abort.'
-      );
+      clearanceVerified = await confirmDialog({
+        title: 'Confirm police clearance verified',
+        message: 'This provider is onsite and requires police clearance. Confirm you\'ve personally verified their uploaded clearance document before approving.',
+        confirmLabel: 'Yes, verified — Approve'
+      });
       if (!clearanceVerified) return;
     }
     try {
       await decideServiceProvider(id, decision, reason, clearanceVerified);
       loadAll();
     } catch (err) {
-      alert(err.response?.data?.message || 'Decision failed');
+      await alertDialog({ title: 'Decision failed', message: err.response?.data?.message || 'Please try again.' });
     }
   };
 

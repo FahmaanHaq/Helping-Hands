@@ -34,4 +34,11 @@ public class ChildrensHomeController {
     public ResponseEntity<ApiResponse<ChildrensHomeResponse>> getMyProfile() {
         return ResponseEntity.ok(ApiResponse.ok("Profile retrieved", childrensHomeService.getMyProfile()));
     }
+
+    @PutMapping("/me/resubmit")
+    @PreAuthorize("hasRole('CHILDRENS_HOME')")
+    public ResponseEntity<ApiResponse<ChildrensHomeResponse>> resubmit(
+            @Valid @RequestBody ChildrensHomeRegistrationRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Resubmitted for review", childrensHomeService.resubmit(request)));
+    }
 }

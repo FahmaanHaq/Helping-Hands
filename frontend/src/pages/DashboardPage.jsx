@@ -190,12 +190,13 @@ function DonorDashboard() {
 
   useEffect(() => {
     Promise.all([
-      browseRequests('CREATED').catch(() => ({ content: [] })),
-      getMyPledges().catch(() => ({ content: [] }))
+      browseRequests('CREATED', { requestType: 'GOODS' }).catch(() => ({ content: [], totalElements: 0 })),
+      getMyPledges().catch(() => ({ content: [], totalElements: 0 }))
     ]).then(([openPage, pledgesPage]) => {
-      const openGoods = (openPage.content || []).filter((r) => r.requestType === 'GOODS');
-      setOpenCount(openGoods.length);
-      setPledgeCount((pledgesPage.content || []).length);
+      // totalElements (not content.length) — content is just the current page,
+      // but the count should reflect the true total across all pages.
+      setOpenCount(openPage.totalElements ?? (openPage.content || []).length);
+      setPledgeCount(pledgesPage.totalElements ?? (pledgesPage.content || []).length);
     });
   }, []);
 

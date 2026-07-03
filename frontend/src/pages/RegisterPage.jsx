@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Logomark from '../components/Logomark.jsx';
 import HeroNetwork from '../components/HeroNetwork.jsx';
+import PasswordField from '../components/PasswordField.jsx';
 
 const ROLE_OPTIONS = [
   { value: 'DONOR', label: 'Donor' },
@@ -11,28 +12,44 @@ const ROLE_OPTIONS = [
   { value: 'DELIVERY_VOLUNTEER', label: 'Delivery Volunteer' }
   // ADMINISTRATOR is intentionally excluded — admins are provisioned, never self-registered.
 ];
-
-const initialForm = {
-  fullName: '',
-  username: '',
-  email: '',
-  password: '',
-  phoneNumber: '',
-  role: 'DONOR'
-};
+const VALID_ROLES = new Set(ROLE_OPTIONS.map((o) => o.value));
 
 export default function RegisterPage() {
   const { register, loading, error } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState(initialForm);
+  const [searchParams] = useSearchParams();
 
-  const handleChange = (e) =>
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  // Homepage CTAs ("Donate Goods", "Volunteer for Delivery", etc.) pass the
+  // visitor's intent via ?role=... — pre-select it rather than defaulting
+  // to Donor regardless of which button they actually clicked.
+  const requestedRole = searchParams.get('role');
+  const initialRole = VALID_ROLES.has(requestedRole) ? requestedRole : 'DONOR';
+
+  const [form, setForm] = useState({
+    fullName: '', username: '', email: '', password: '', confirmPassword: '', phoneNumber: '', role: initialRole
+  });
+  const [passwordMismatch, setPasswordMismatch] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === 'password' || name === 'confirmPassword') {
+        setPasswordMismatch(next.confirmPassword.length > 0 && next.password !== next.confirmPassword);
+      }
+      return next;
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (form.password !== form.confirmPassword) {
+      setPasswordMismatch(true);
+      return;
+    }
     try {
-      await register(form);
+      const { confirmPassword, ...payload } = form; // never sent — client-side check only
+      await register(payload);
       navigate('/dashboard');
     } catch {
       // error already captured in context state
@@ -67,15 +84,29 @@ export default function RegisterPage() {
 
         <label>
           Password
-          <input
-            type="password"
+          <PasswordField
             name="password"
             value={form.password}
             onChange={handleChange}
             minLength={8}
+            autoComplete="new-password"
             required
           />
         </label>
+
+        <label>
+          Confirm Password
+          <PasswordField
+            name="confirmPassword"
+            value={form.confirmPassword}
+            onChange={handleChange}
+            minLength={8}
+            autoComplete="new-password"
+            className={passwordMismatch ? 'input-invalid' : ''}
+            required
+          />
+        </label>
+        {passwordMismatch && <p className="field-error-text">Passwords don't match</p>}
 
         <label>
           Phone Number
@@ -93,7 +124,7 @@ export default function RegisterPage() {
 
         {error && <p className="form-error">{error}</p>}
 
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading || passwordMismatch}>
           {loading ? 'Creating account…' : 'Register'}
         </button>
 

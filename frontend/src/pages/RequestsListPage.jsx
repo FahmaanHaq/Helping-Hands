@@ -6,6 +6,7 @@ import { browseRequests, getMyRequests, getMyPledges } from '../services/request
 import { flagRequest } from '../services/moderationService';
 import RequestStatusBadge from '../components/RequestStatusBadge.jsx';
 import Pagination from '../components/Pagination.jsx';
+import { useModal } from '../hooks/useModal';
 
 const STATUS_OPTIONS = ['CREATED', 'PLEDGED', 'ACCEPTED', 'IN_PROGRESS', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
 const GOODS_CATEGORIES = ['FOOD', 'BOOKS', 'CLOTHING', 'MEDICAL_SUPPLIES', 'EDUCATIONAL_MATERIALS', 'OTHER_GOODS'];
@@ -44,6 +45,7 @@ function RequestRow({ request, isAdmin, onToggleFlag }) {
 
 export default function RequestsListPage() {
   const { hasRole } = useAuth();
+  const { promptDialog, confirmDialog, alertDialog } = useModal();
   const isHome = hasRole('CHILDRENS_HOME');
   const isDonor = hasRole('DONOR');
   const isDeliveryVolunteer = hasRole('DELIVERY_VOLUNTEER');
@@ -100,15 +102,27 @@ export default function RequestsListPage() {
   useEffect(() => { load(); }, [adminStatus, category, urgency, pageNum, pledgesPageNum]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleToggleFlag = async (request) => {
-    if (!request.flagged) {
-      const reason = window.prompt('Reason for flagging this request:');
-      if (!reason) return;
-      await flagRequest(request.id, true, reason);
-    } else {
-      if (!window.confirm('Clear the flag on this request?')) return;
-      await flagRequest(request.id, false, null);
+    try {
+      if (!request.flagged) {
+        const reason = await promptDialog({
+          title: 'Flag this request?',
+          message: 'It will be hidden from the public marketplace until an admin clears the flag.',
+          placeholder: 'Reason for flagging',
+          confirmLabel: 'Flag',
+          danger: true,
+          required: true
+        });
+        if (!reason) return;
+        await flagRequest(request.id, true, reason);
+      } else {
+        const ok = await confirmDialog({ title: 'Clear the flag on this request?' });
+        if (!ok) return;
+        await flagRequest(request.id, false, null);
+      }
+      load();
+    } catch (err) {
+      await alertDialog({ title: 'Failed to update flag', message: err.response?.data?.message || 'Please try again.' });
     }
-    load();
   };
 
   const requests = mainPage?.content || [];

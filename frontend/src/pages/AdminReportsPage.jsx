@@ -3,8 +3,10 @@ import { Download, FileText } from 'lucide-react';
 import { getReportsSummary, exportRequestsCsv, exportReportPdf } from '../services/reportsService';
 import StatCard from '../components/StatCard.jsx';
 import RequestBreakdownChart from '../components/RequestBreakdownChart.jsx';
+import { useModal } from '../hooks/useModal';
 
 export default function AdminReportsPage() {
+  const { alertDialog } = useModal();
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState(null);
   const [exportingCsv, setExportingCsv] = useState(false);
@@ -19,7 +21,7 @@ export default function AdminReportsPage() {
     try {
       await exportRequestsCsv();
     } catch {
-      alert('Export failed');
+      await alertDialog({ title: 'Export failed', message: 'Please try again.' });
     } finally {
       setExportingCsv(false);
     }
@@ -30,7 +32,7 @@ export default function AdminReportsPage() {
     try {
       await exportReportPdf();
     } catch {
-      alert('Export failed');
+      await alertDialog({ title: 'Export failed', message: 'Please try again.' });
     } finally {
       setExportingPdf(false);
     }

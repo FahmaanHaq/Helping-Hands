@@ -4,8 +4,10 @@ import { browseFlaggedRequests } from '../services/requestService';
 import { flagRequest } from '../services/moderationService';
 import RequestStatusBadge from '../components/RequestStatusBadge.jsx';
 import Pagination from '../components/Pagination.jsx';
+import { useModal } from '../hooks/useModal';
 
 export default function AdminFlaggedContentPage() {
+  const { confirmDialog, alertDialog } = useModal();
   const [pageData, setPageData] = useState(null);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -27,12 +29,13 @@ export default function AdminFlaggedContentPage() {
   useEffect(() => { load(); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleClearFlag = async (request) => {
-    if (!window.confirm('Clear the flag on this request?')) return;
+    const ok = await confirmDialog({ title: 'Clear the flag on this request?', message: 'It will become visible in the public marketplace again.' });
+    if (!ok) return;
     try {
       await flagRequest(request.id, false, null);
       load();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to clear flag');
+      await alertDialog({ title: 'Failed to clear flag', message: err.response?.data?.message || 'Please try again.' });
     }
   };
 

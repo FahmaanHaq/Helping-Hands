@@ -24,6 +24,8 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class ServiceProviderService {
 
+    public static final int MAX_RESUBMISSIONS = 3;
+
     private final ServiceProviderRepository serviceProviderRepository;
     private final CurrentUserResolver currentUserResolver;
     private final AuditLogService auditLogService;
@@ -111,8 +113,47 @@ public class ServiceProviderService {
                 ? NotificationType.VERIFICATION_APPROVED : NotificationType.VERIFICATION_REJECTED;
         String message = decision.decision() == VerificationStatus.APPROVED
                 ? "Your Service Provider profile has been approved. You can now pledge to requests."
-                : "Your Service Provider registration was rejected: " + decision.rejectionReason();
+                : "Your Service Provider registration was rejected: " + decision.rejectionReason()
+                        + " You may correct the issue and resubmit (up to " + MAX_RESUBMISSIONS + " times).";
         notificationService.notify(provider.getUser(), notificationType, "Verification Decision", message, "/service-provider");
+
+        return toResponse(saved);
+    }
+
+    /**
+     * See ChildrensHomeService.resubmit() for the full rationale — same
+     * bounded resubmission pattern applied to Service Providers.
+     */
+    @Transactional
+    public ServiceProviderResponse resubmit(ServiceProviderRegistrationRequest request) {
+        User user = currentUserResolver.getCurrentUser();
+        ServiceProvider provider = serviceProviderRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ApiException("No Service Provider profile found for this account", HttpStatus.NOT_FOUND));
+
+        if (provider.getVerificationStatus() != VerificationStatus.REJECTED) {
+            throw new ApiException("Only a rejected profile can be resubmitted", HttpStatus.CONFLICT);
+        }
+        if (provider.getResubmissionCount() >= MAX_RESUBMISSIONS) {
+            throw new ApiException(
+                    "You have reached the maximum of " + MAX_RESUBMISSIONS + " resubmissions. Please contact an administrator.",
+                    HttpStatus.FORBIDDEN);
+        }
+
+        provider.setSkills(request.skills());
+        provider.setQualifications(request.qualifications());
+        provider.setServiceCategories(request.serviceCategories());
+        provider.setServiceMode(request.serviceMode());
+        provider.setPoliceClearanceRequired(request.serviceMode() == ServiceMode.ONSITE);
+        provider.setPoliceClearanceVerified(false); // re-verification required against the (possibly new) mode/documents
+        provider.setVerificationStatus(VerificationStatus.SUBMITTED);
+        provider.setRejectionReason(null);
+        provider.setReviewedBy(null);
+        provider.setReviewedDate(null);
+        provider.setResubmissionCount(provider.getResubmissionCount() + 1);
+
+        ServiceProvider saved = serviceProviderRepository.save(provider);
+        auditLogService.record("SERVICE_PROVIDER_RESUBMITTED", "SERVICE_PROVIDER", provider.getId(),
+                "Resubmission " + saved.getResubmissionCount() + " of " + MAX_RESUBMISSIONS);
 
         return toResponse(saved);
     }
@@ -130,6 +171,8 @@ public class ServiceProviderService {
                 provider.getRejectionReason(),
                 provider.getReviewedBy(),
                 provider.getReviewedDate(),
+                provider.getResubmissionCount(),
+                Math.max(0, MAX_RESUBMISSIONS - provider.getResubmissionCount()),
                 provider.getCreatedDate()
         );
     }

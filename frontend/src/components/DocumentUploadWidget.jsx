@@ -11,6 +11,9 @@ const TYPE_LABELS = {
   REQUEST_IMAGE: 'Request Image'
 };
 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_CONTENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+
 /**
  * ownerType: 'CHILDRENS_HOME' | 'SERVICE_PROVIDER'
  * ownerId: numeric id of the profile the documents belong to
@@ -34,6 +37,30 @@ export default function DocumentUploadWidget({ ownerType, ownerId, allowedTypes 
   };
 
   useEffect(refresh, [ownerType, ownerId]);
+
+  const handleFileChange = (e) => {
+    const selected = e.target.files[0];
+    setError(null);
+    if (!selected) {
+      setFile(null);
+      return;
+    }
+    // Same rule the backend enforces — catching it here saves a wasted
+    // round trip, especially over a slow connection.
+    if (selected.size > MAX_FILE_SIZE_BYTES) {
+      setError(`"${selected.name}" is ${(selected.size / (1024 * 1024)).toFixed(1)}MB — the limit is 10MB.`);
+      setFile(null);
+      e.target.value = '';
+      return;
+    }
+    if (!ALLOWED_CONTENT_TYPES.includes(selected.type)) {
+      setError('Only PDF, JPG, and PNG files are accepted.');
+      setFile(null);
+      e.target.value = '';
+      return;
+    }
+    setFile(selected);
+  };
 
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -93,7 +120,7 @@ export default function DocumentUploadWidget({ ownerType, ownerId, allowedTypes 
         </label>
         <label>
           File (PDF, JPG, or PNG — max 10MB)
-          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files[0])} />
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileChange} />
         </label>
 
         {error && <p className="form-error">{error}</p>}

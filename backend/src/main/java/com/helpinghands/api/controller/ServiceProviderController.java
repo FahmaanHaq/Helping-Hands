@@ -34,4 +34,11 @@ public class ServiceProviderController {
     public ResponseEntity<ApiResponse<ServiceProviderResponse>> getMyProfile() {
         return ResponseEntity.ok(ApiResponse.ok("Profile retrieved", serviceProviderService.getMyProfile()));
     }
+
+    @PutMapping("/me/resubmit")
+    @PreAuthorize("hasRole('SERVICE_PROVIDER')")
+    public ResponseEntity<ApiResponse<ServiceProviderResponse>> resubmit(
+            @Valid @RequestBody ServiceProviderRegistrationRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Resubmitted for review", serviceProviderService.resubmit(request)));
+    }
 }

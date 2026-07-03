@@ -55,6 +55,45 @@ public class DocumentService {
                 "Removed document #" + documentId + " (" + document.getOriginalFileName() + ")");
     }
 
+    /**
+     * Self-service removal, distinct from the admin moderation remove()
+     * above: lets the owning Children's Home take down its own mistaken
+     * request-image upload without needing an administrator, but only
+     * while the request is still CREATED (once pledged, the images become
+     * part of a commitment the fulfiller is relying on) and only for
+     * REQUEST_IMAGE documents — verification documents still require an
+     * administrator either way.
+     */
+    @Transactional
+    public void removeOwnRequestImage(Long documentId) {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ApiException("Document not found", HttpStatus.NOT_FOUND));
+
+        if (document.getOwnerType() != DocumentOwnerType.REQUEST) {
+            throw new ApiException(
+                    "Only request images can be removed this way; other documents require an administrator",
+                    HttpStatus.FORBIDDEN);
+        }
+
+        Request request = requestRepository.findById(document.getOwnerId())
+                .orElseThrow(() -> new ApiException("Request not found", HttpStatus.NOT_FOUND));
+
+        User currentUser = currentUserResolver.getCurrentUser();
+        if (!request.getChildrensHome().getUser().getId().equals(currentUser.getId())) {
+            throw new ApiException("You do not have access to this resource", HttpStatus.FORBIDDEN);
+        }
+        if (request.getStatus() != RequestStatus.CREATED) {
+            throw new ApiException(
+                    "Images can only be removed while the request is still open (before anyone has pledged)",
+                    HttpStatus.CONFLICT);
+        }
+
+        document.setIsActive(false);
+        document.setModifiedBy(currentUser.getUsername());
+        document.setModifiedDate(java.time.LocalDateTime.now());
+        documentRepository.save(document);
+    }
+
     @Transactional
     public DocumentResponse upload(DocumentOwnerType ownerType, Long ownerId, DocumentType documentType,
                                     String remarks, MultipartFile file) {

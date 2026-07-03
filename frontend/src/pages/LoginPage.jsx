@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { resendMfa } from '../services/authService';
 import Logomark from '../components/Logomark.jsx';
 import HeroNetwork from '../components/HeroNetwork.jsx';
+import PasswordField from '../components/PasswordField.jsx';
 
 export default function LoginPage() {
   const { login, completeMfaLogin, loading, error } = useAuth();
@@ -133,11 +134,11 @@ export default function LoginPage() {
 
         <label>
           Password
-          <input
-            type="password"
+          <PasswordField
             name="password"
             value={form.password}
             onChange={handleChange}
+            autoComplete="current-password"
             required
           />
         </label>

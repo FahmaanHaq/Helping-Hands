@@ -521,3 +521,38 @@ blocked.
    fine for a demo. You can switch to a verified domain address later.
 3. You can leave the old `MAIL_*` variables in place or remove them —
    they're simply unused while `EMAIL_PROVIDER=resend`.
+
+## All QA Findings Resolved (pre-release hardening pass)
+
+Following the QA audit (see `docs/QA_Audit_Report.docx`), every finding — 4
+Critical, 6 Moderate, 5 Minor — has been fixed:
+
+- **Resubmission after rejection** — Children's Homes and Service Providers
+  can now edit and resubmit a rejected profile, up to 3 times, tracked via a
+  `resubmissionCount` column. The rejection notification mentions this.
+  After 3 failed attempts, the UI directs the user to contact an admin.
+- **Themed modal dialogs** — every `window.prompt`/`window.confirm`/`alert()`
+  in the app has been replaced with a consistent in-app dialog
+  (`ModalContext`/`useModal`), used for all admin actions, flagging,
+  cancellation reasons, and error messages.
+- **Password UX** — a Confirm Password field (with live mismatch feedback)
+  on registration, and a show/hide toggle on every password field.
+- **Self-service image removal** — a Children's Home can now remove its own
+  request images while the request is still open, without needing an admin.
+- **Paginated directories** — Donor/Service Provider directory endpoints now
+  support page/size like every other list endpoint.
+- **Client-side upload validation** — file size/type is checked before the
+  upload attempt, not just after.
+- **Data-accuracy and error-handling fixes** — corrected a stale-pagination
+  bug on admin user search, a silently-failing flag/unflag action (fixed in
+  two places), and an inaccurate goods-request count on the Donor dashboard.
+- **Homepage CTA intent** — the hero buttons now pre-select the matching
+  role on the registration form instead of always defaulting to Donor.
+
+### Required setup for this batch
+
+Run the new migration on Neon:
+```sql
+-- database/011_schema_resubmission.sql
+```
+No new environment variables are needed.

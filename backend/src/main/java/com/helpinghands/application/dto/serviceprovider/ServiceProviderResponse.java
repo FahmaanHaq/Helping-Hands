@@ -19,6 +19,8 @@ public record ServiceProviderResponse(
         String rejectionReason,
         String reviewedBy,
         LocalDateTime reviewedDate,
+        Integer resubmissionCount,
+        Integer resubmissionsRemaining,
         LocalDateTime createdDate
 ) {
 }

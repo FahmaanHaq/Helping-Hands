@@ -37,3 +37,11 @@ export async function downloadDocument(documentId, fileName) {
   link.remove();
   window.URL.revokeObjectURL(url);
 }
+
+// Self-service removal for a Children's Home's own request image — only
+// works while the request is still CREATED (see DocumentService.removeOwnRequestImage
+// on the backend for the exact rule). Distinct from removeDocument() in
+// moderationService.js, which is the admin-only moderation path.
+export async function removeOwnDocument(documentId) {
+  await api.delete(`/documents/${documentId}`);
+}
