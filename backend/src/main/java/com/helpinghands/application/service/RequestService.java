@@ -307,6 +307,58 @@ public class RequestService {
         return toResponse(saved);
     }
 
+    /**
+     * The queue a Delivery Volunteer actually needed and didn't have: every
+     * request where a Donor chose "request a delivery volunteer" at pledge
+     * time, no volunteer has claimed it yet, and it hasn't been resolved
+     * another way. Without this, the volunteer preference had nowhere to
+     * surface once the request left the public CREATED marketplace.
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<RequestResponse> listAvailableDeliveries(
+            org.springframework.data.domain.Pageable pageable) {
+        return requestRepository.findAvailableDeliveries(pageable).map(this::toResponse);
+    }
+
+    @Transactional
+    public RequestResponse claimDelivery(Long id) {
+        Request request = findOrThrow(id);
+        User volunteer = currentUserResolver.getCurrentVerifiedUser();
+
+        boolean isDeliveryVolunteer = volunteer.getRoles().stream()
+                .anyMatch(r -> r.getName() == RoleName.DELIVERY_VOLUNTEER);
+        if (!isDeliveryVolunteer) {
+            throw new ApiException("Only Delivery Volunteers can claim a delivery", HttpStatus.FORBIDDEN);
+        }
+        if (request.getDeliveryMethod() != DeliveryMethod.VOLUNTEER_PICKUP) {
+            throw new ApiException("This request isn't looking for a delivery volunteer", HttpStatus.CONFLICT);
+        }
+        if (request.getDeliveryVolunteer() != null) {
+            throw new ApiException("This delivery has already been claimed by another volunteer", HttpStatus.CONFLICT);
+        }
+        if (request.getPledgedBy() != null && request.getPledgedBy().getId().equals(volunteer.getId())) {
+            throw new ApiException("You're already the Donor on this request", HttpStatus.CONFLICT);
+        }
+
+        request.setDeliveryVolunteer(volunteer);
+        Request saved = requestRepository.save(request);
+
+        auditLogService.record("DELIVERY_CLAIMED", "REQUEST", id,
+                volunteer.getUsername() + " claimed the delivery volunteer task");
+
+        String link = "/requests/" + id;
+        notificationService.notify(request.getChildrensHome().getUser(), NotificationType.REQUEST_REMINDER,
+                "Delivery Volunteer Assigned",
+                volunteer.getUsername() + " will handle delivery for \"" + request.getTitle() + "\".", link);
+        if (request.getPledgedBy() != null) {
+            notificationService.notify(request.getPledgedBy(), NotificationType.REQUEST_REMINDER,
+                    "Delivery Volunteer Assigned",
+                    volunteer.getUsername() + " will pick up and deliver your donation for \"" + request.getTitle() + "\".", link);
+        }
+
+        return toResponse(saved);
+    }
+
     private static final Set<RequestStatus> CANCELLABLE_FROM = Set.of(RequestStatus.CREATED, RequestStatus.PLEDGED);
 
     private void assertLegalTransition(RequestStatus from, RequestStatus to, boolean isAdmin) {
@@ -340,6 +392,8 @@ public class RequestService {
 
         boolean isOwningHome = request.getChildrensHome().getUser().getId().equals(user.getId());
         boolean isPledgedUser = request.getPledgedBy() != null && request.getPledgedBy().getId().equals(user.getId());
+        boolean isAssignedVolunteer = request.getDeliveryVolunteer() != null
+                && request.getDeliveryVolunteer().getId().equals(user.getId());
 
         boolean authorized = switch (to) {
             case PLEDGED -> {
@@ -362,8 +416,8 @@ public class RequestService {
                         .orElse(false);
             }
             case ACCEPTED -> isOwningHome;
-            case IN_PROGRESS -> isPledgedUser || isOwningHome;
-            case DELIVERED -> isPledgedUser;
+            case IN_PROGRESS -> isPledgedUser || isOwningHome || isAssignedVolunteer;
+            case DELIVERED -> isPledgedUser || isAssignedVolunteer;
             case COMPLETED -> isOwningHome; // home confirms completion, per spec
             case CANCELLED -> isOwningHome && CANCELLABLE_FROM.contains(from);
             default -> false;
@@ -465,6 +519,8 @@ public class RequestService {
                 r.getFlagReason(),
                 r.getDeliveryMethod(),
                 r.getCourierDetails(),
+                r.getDeliveryVolunteer() != null ? r.getDeliveryVolunteer().getId() : null,
+                r.getDeliveryVolunteer() != null ? r.getDeliveryVolunteer().getUsername() : null,
                 r.getCreatedDate()
         );
     }

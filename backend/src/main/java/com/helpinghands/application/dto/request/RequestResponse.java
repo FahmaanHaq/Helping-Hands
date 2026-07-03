@@ -23,6 +23,8 @@ public record RequestResponse(
         String flagReason,
         com.helpinghands.domain.entity.DeliveryMethod deliveryMethod,
         String courierDetails,
+        Long deliveryVolunteerUserId,
+        String deliveryVolunteerUsername,
         LocalDateTime createdDate
 ) {
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Flag } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { getRequest, getRequestHistory, changeRequestStatus, arrangeAlternativeDelivery } from '../services/requestService';
+import { getRequest, getRequestHistory, changeRequestStatus, arrangeAlternativeDelivery, claimDelivery } from '../services/requestService';
 import { listDocuments, downloadDocument, removeOwnDocument } from '../services/documentService';
 import { flagRequest, removeDocument } from '../services/moderationService';
 import { listMessages, sendMessage } from '../services/messageService';
@@ -244,6 +244,23 @@ export default function RequestDetailPage() {
     }
   };
 
+  const handleClaimDelivery = async () => {
+    const ok = await modal.confirmDialog({
+      title: 'Claim this delivery?',
+      message: 'You\'ll be responsible for picking up and delivering this donation.'
+    });
+    if (!ok) return;
+    setActionLoading(true);
+    try {
+      await claimDelivery(id);
+      load();
+    } catch (err) {
+      await modal.alertDialog({ title: 'Failed to claim delivery', message: err.response?.data?.message || 'Please try again.' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleArrangeAlternativeDelivery = async () => {
     const courierInfo = await modal.promptDialog({
       title: 'Arrange alternative delivery',
@@ -330,6 +347,22 @@ export default function RequestDetailPage() {
               {request.deliveryMethod.replace('_', ' ')}
               {request.courierDetails ? ` — ${request.courierDetails}` : ''}
             </strong>
+          </div>
+        )}
+        {request.deliveryVolunteerUsername && (
+          <div className="profile-row">
+            <span>Delivery Volunteer</span>
+            <strong>{request.deliveryVolunteerUsername}</strong>
+          </div>
+        )}
+        {hasRole('DELIVERY_VOLUNTEER') && request.deliveryMethod === 'VOLUNTEER_PICKUP'
+          && !request.deliveryVolunteerUsername
+          && !['DELIVERED', 'COMPLETED', 'CANCELLED'].includes(request.status) && (
+          <div style={{ marginTop: '0.5rem' }}>
+            <p className="hint-text">This donation needs someone to pick it up and deliver it.</p>
+            <button type="button" onClick={handleClaimDelivery} disabled={actionLoading}>
+              Claim This Delivery
+            </button>
           </div>
         )}
         {isOwningHome && request.deliveryMethod === 'VOLUNTEER_PICKUP'

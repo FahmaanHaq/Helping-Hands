@@ -59,6 +59,13 @@ export default function Sidebar({ open, onClose }) {
             </NavLink>
           )}
 
+          {hasRole('DELIVERY_VOLUNTEER') && (
+            <NavLink to="/deliveries/available" className={linkClass} onClick={onClose}>
+              <PackageSearch size={18} />
+              <span>Available Deliveries</span>
+            </NavLink>
+          )}
+
           {hasRole('CHILDRENS_HOME') && (
             <NavLink to="/requests" className={linkClass} onClick={onClose}>
               <PackageSearch size={18} />

@@ -108,4 +108,22 @@ public class RequestController {
             @PathVariable Long id, @RequestParam String courierDetails) {
         return ApiResponse.ok("Alternative delivery arranged", requestService.arrangeAlternativeDelivery(id, courierDetails));
     }
+
+    /**
+     * The queue that was missing entirely: every request where a Donor
+     * asked for a delivery volunteer and none has claimed it yet.
+     */
+    @GetMapping("/available-deliveries")
+    @PreAuthorize("hasRole('DELIVERY_VOLUNTEER')")
+    public ApiResponse<Page<RequestResponse>> availableDeliveries(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.ok("Retrieved", requestService.listAvailableDeliveries(PageRequest.of(page, size)));
+    }
+
+    @PatchMapping("/{id}/claim-delivery")
+    @PreAuthorize("hasRole('DELIVERY_VOLUNTEER')")
+    public ApiResponse<RequestResponse> claimDelivery(@PathVariable Long id) {
+        return ApiResponse.ok("Delivery claimed", requestService.claimDelivery(id));
+    }
 }

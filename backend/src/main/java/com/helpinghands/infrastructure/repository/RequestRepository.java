@@ -37,4 +37,8 @@ public interface RequestRepository extends JpaRepository<Request, Long>, JpaSpec
     @Query("SELECT r FROM Request r WHERE r.deliveryMethod = 'VOLUNTEER_PICKUP' " +
            "AND r.status IN ('PLEDGED', 'ACCEPTED') AND r.modifiedDate < :cutoff")
     java.util.List<Request> findStalledVolunteerPickup(@Param("cutoff") java.time.LocalDateTime cutoff);
+
+    @Query("SELECT r FROM Request r WHERE r.deliveryMethod = 'VOLUNTEER_PICKUP' " +
+           "AND r.deliveryVolunteer IS NULL AND r.status IN ('PLEDGED', 'ACCEPTED') AND r.flagged = false")
+    org.springframework.data.domain.Page<Request> findAvailableDeliveries(org.springframework.data.domain.Pageable pageable);
 }

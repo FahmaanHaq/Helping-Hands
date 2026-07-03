@@ -79,6 +79,17 @@ public class Request extends BaseEntity {
     private String courierDetails;
 
     /**
+     * The Delivery Volunteer who actually claimed this transport task —
+     * distinct from pledgedBy, which stays the Donor who supplied the goods
+     * even when a volunteer handles delivery. Null until deliveryMethod is
+     * VOLUNTEER_PICKUP and a volunteer has claimed it via the available-
+     * deliveries queue.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "delivery_volunteer_id")
+    private User deliveryVolunteer;
+
+    /**
      * Content moderation, independent of the request's lifecycle status.
      * A flagged request stays in whatever status it was in (CREATED, PLEDGED,
      * etc.) but is hidden from the public marketplace browse until an admin

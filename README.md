@@ -705,3 +705,50 @@ Run the new migration on Neon:
 -- database/012_schema_messaging.sql
 ```
 No new environment variables needed.
+
+## Fixed: Document Uploads (Dockerfile) + Real Delivery Volunteer Assignment
+
+### Document upload failures — root cause was the Dockerfile
+Every upload was failing with a raw filesystem path in the error message.
+Root cause: the container switches to a non-root `spring` user for
+security, but `/app` (where `./uploads` resolves) was never handed over to
+that user — so it could never write there. Fixed by creating the uploads
+folder and `chown`-ing `/app` to `spring` before the user switch. Also
+added startup validation for `STORAGE_ENCRYPTION_KEY` so a malformed key
+(e.g. a literal placeholder like `<...>` left in by mistake) fails loudly
+in the logs at boot, not cryptically on the first upload attempt.
+
+### Delivery Volunteers previously had no way to see delivery requests
+Found via testing: choosing "request a delivery volunteer" at pledge time
+only recorded a preference — nothing let an actual Delivery Volunteer
+discover or claim that task, since the request already left the public
+marketplace once pledged. Fixed with a proper assignment flow:
+- New `deliveryVolunteer` field on Request, distinct from `pledgedBy` (the
+  Donor keeps credit for the donation even when a volunteer handles transport)
+- **Available Deliveries** page/sidebar link for the Delivery Volunteer role
+  — lists every unclaimed volunteer-pickup request
+- **Claim This Delivery** button, both from that queue and from the
+  request's own detail page
+- Once claimed, the volunteer (not just the original Donor) can mark
+  In Progress / Delivered
+- Both the Home and the Donor are notified when a volunteer claims their delivery
+
+### Required setup for this batch
+
+1. **Regenerate your `STORAGE_ENCRYPTION_KEY` on Render** if it currently
+   contains stray characters — generate a clean one with `openssl rand -base64 32`
+2. Run the new migration on Neon:
+   ```sql
+   -- database/013_schema_delivery_volunteer_assignment.sql
+   ```
+3. Push — this includes a Dockerfile change, so make sure Render does a
+   full rebuild rather than reusing a cached image layer.
+
+### Known limitation (not a bug): multiple accounts in multiple tabs
+
+Login sessions are stored in `localStorage`, which is shared across every
+tab in the same browser profile — logging into a second account in another
+tab overwrites the first tab's session too. This is standard behavior for
+virtually all token-based web apps (try two Gmail accounts in two regular
+tabs). To test multiple roles at once, use a regular window for one account
+and an Incognito/Private window for another, or two different browsers.

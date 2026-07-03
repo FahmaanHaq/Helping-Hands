@@ -56,3 +56,13 @@ export async function arrangeAlternativeDelivery(id, courierDetails) {
   const { data } = await api.patch(`/requests/${id}/arrange-alternative-delivery`, null, { params: { courierDetails } });
   return data.data;
 }
+
+export async function getAvailableDeliveries(page = 0) {
+  const { data } = await api.get('/requests/available-deliveries', { params: { page, size: PAGE_SIZE } });
+  return data.data;
+}
+
+export async function claimDelivery(id) {
+  const { data } = await api.patch(`/requests/${id}/claim-delivery`);
+  return data.data;
+}

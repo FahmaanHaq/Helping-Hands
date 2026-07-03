@@ -19,6 +19,7 @@ import AdminFlaggedContentPage from './pages/AdminFlaggedContentPage.jsx';
 import DonorDirectoryPage from './pages/DonorDirectoryPage.jsx';
 import CreateRequestPage from './pages/CreateRequestPage.jsx';
 import RequestsListPage from './pages/RequestsListPage.jsx';
+import AvailableDeliveriesPage from './pages/AvailableDeliveriesPage.jsx';
 import RequestDetailPage from './pages/RequestDetailPage.jsx';
 import ProtectedRoute from './routes/ProtectedRoute.jsx';
 import { useAuth } from './hooks/useAuth.js';
@@ -77,6 +78,15 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Shell><RequestsListPage /></Shell>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/deliveries/available"
+        element={
+          <ProtectedRoute allowedRoles={['DELIVERY_VOLUNTEER']}>
+            <Shell><AvailableDeliveriesPage /></Shell>
           </ProtectedRoute>
         }
       />

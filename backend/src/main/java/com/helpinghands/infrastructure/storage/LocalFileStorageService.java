@@ -1,6 +1,9 @@
 package com.helpinghands.infrastructure.storage;
 
 import com.helpinghands.api.exception.ApiException;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,6 +33,7 @@ import java.util.UUID;
 @Service
 public class LocalFileStorageService implements FileStorageService {
 
+    private static final Logger log = LoggerFactory.getLogger(LocalFileStorageService.class);
     private static final int GCM_IV_LENGTH_BYTES = 12;
     private static final int GCM_TAG_LENGTH_BITS = 128;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -39,6 +43,31 @@ public class LocalFileStorageService implements FileStorageService {
 
     @Value("${storage.encryption-key}")
     private String encryptionKeyBase64;
+
+    /**
+     * Fails loudly at startup rather than cryptically on the first upload
+     * attempt — a malformed STORAGE_ENCRYPTION_KEY (stray characters like a
+     * literal placeholder's angle brackets, wrong length, etc.) previously
+     * only surfaced as "IllegalArgumentException: Illegal base64 character"
+     * deep in a user-facing upload error, with no indication of the actual
+     * cause.
+     */
+    @PostConstruct
+    private void validateEncryptionKeyAtStartup() {
+        try {
+            byte[] keyBytes = Base64.getDecoder().decode(encryptionKeyBase64.trim());
+            if (keyBytes.length != 32) {
+                log.error("STORAGE_ENCRYPTION_KEY decodes to {} bytes, not the 32 bytes AES-256 requires. " +
+                        "Every document upload will fail until this is fixed. Generate a correct value with: " +
+                        "openssl rand -base64 32", keyBytes.length);
+            }
+        } catch (IllegalArgumentException e) {
+            log.error("STORAGE_ENCRYPTION_KEY is not valid base64 ({}). Every document upload will fail until " +
+                    "this is fixed — check the Render environment variable for stray characters (quotes, angle " +
+                    "brackets, leftover placeholder text). Generate a correct value with: openssl rand -base64 32",
+                    e.getMessage());
+        }
+    }
 
     @Override
     public String store(MultipartFile file, String subFolder) {
@@ -108,7 +137,7 @@ public class LocalFileStorageService implements FileStorageService {
     }
 
     private SecretKeySpec secretKey() {
-        byte[] keyBytes = Base64.getDecoder().decode(encryptionKeyBase64);
+        byte[] keyBytes = Base64.getDecoder().decode(encryptionKeyBase64.trim());
         return new SecretKeySpec(keyBytes, "AES");
     }
 
