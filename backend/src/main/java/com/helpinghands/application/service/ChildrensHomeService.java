@@ -32,7 +32,7 @@ public class ChildrensHomeService {
 
     @Transactional
     public ChildrensHomeResponse register(ChildrensHomeRegistrationRequest request) {
-        User user = currentUserResolver.getCurrentUser();
+        User user = currentUserResolver.getCurrentVerifiedUser();
 
         if (childrensHomeRepository.existsByUserId(user.getId())) {
             throw new ApiException("A Children's Home profile already exists for this account", HttpStatus.CONFLICT);
@@ -110,7 +110,7 @@ public class ChildrensHomeService {
      */
     @Transactional
     public ChildrensHomeResponse resubmit(ChildrensHomeRegistrationRequest request) {
-        User user = currentUserResolver.getCurrentUser();
+        User user = currentUserResolver.getCurrentVerifiedUser();
         ChildrensHome home = childrensHomeRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ApiException("No Children's Home profile found for this account", HttpStatus.NOT_FOUND));
 

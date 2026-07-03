@@ -111,6 +111,7 @@ class RequestServiceTest {
         Request request = goodsRequest(RequestStatus.CREATED);
         when(requestRepository.findById(500L)).thenReturn(Optional.of(request));
         when(currentUserResolver.getCurrentUser()).thenReturn(donorUser);
+        when(currentUserResolver.getCurrentVerifiedUser()).thenReturn(donorUser);
 
         var result = requestService.changeStatus(500L, new RequestStatusChangeRequest(RequestStatus.PLEDGED, null));
 
@@ -123,6 +124,7 @@ class RequestServiceTest {
         Request request = goodsRequest(RequestStatus.CREATED);
         when(requestRepository.findById(500L)).thenReturn(Optional.of(request));
         when(currentUserResolver.getCurrentUser()).thenReturn(homeOwnerUser);
+        when(currentUserResolver.getCurrentVerifiedUser()).thenReturn(homeOwnerUser);
 
         ApiException ex = assertThrows(ApiException.class, () ->
                 requestService.changeStatus(500L, new RequestStatusChangeRequest(RequestStatus.PLEDGED, null)));
@@ -134,6 +136,7 @@ class RequestServiceTest {
         Request request = serviceRequest(RequestStatus.CREATED);
         when(requestRepository.findById(501L)).thenReturn(Optional.of(request));
         when(currentUserResolver.getCurrentUser()).thenReturn(providerUser);
+        when(currentUserResolver.getCurrentVerifiedUser()).thenReturn(providerUser);
 
         ServiceProvider unapprovedProfile = new ServiceProvider();
         unapprovedProfile.setVerificationStatus(VerificationStatus.SUBMITTED);
@@ -149,6 +152,7 @@ class RequestServiceTest {
         Request request = serviceRequest(RequestStatus.CREATED);
         when(requestRepository.findById(501L)).thenReturn(Optional.of(request));
         when(currentUserResolver.getCurrentUser()).thenReturn(providerUser);
+        when(currentUserResolver.getCurrentVerifiedUser()).thenReturn(providerUser);
 
         ServiceProvider approvedProfile = new ServiceProvider();
         approvedProfile.setVerificationStatus(VerificationStatus.APPROVED);
@@ -164,6 +168,7 @@ class RequestServiceTest {
         Request request = goodsRequest(RequestStatus.CREATED);
         when(requestRepository.findById(500L)).thenReturn(Optional.of(request));
         when(currentUserResolver.getCurrentUser()).thenReturn(donorUser);
+        when(currentUserResolver.getCurrentVerifiedUser()).thenReturn(donorUser);
         when(ratingService.isUserRestricted(donorUser.getId())).thenReturn(true);
 
         assertThrows(ApiException.class, () ->
@@ -177,6 +182,7 @@ class RequestServiceTest {
         Request request = goodsRequest(RequestStatus.CREATED);
         when(requestRepository.findById(500L)).thenReturn(Optional.of(request));
         when(currentUserResolver.getCurrentUser()).thenReturn(homeOwnerUser);
+        when(currentUserResolver.getCurrentVerifiedUser()).thenReturn(homeOwnerUser);
 
         ApiException ex = assertThrows(ApiException.class, () ->
                 requestService.changeStatus(500L, new RequestStatusChangeRequest(RequestStatus.COMPLETED, null)));
@@ -189,6 +195,7 @@ class RequestServiceTest {
         request.setPledgedBy(donorUser);
         when(requestRepository.findById(500L)).thenReturn(Optional.of(request));
         when(currentUserResolver.getCurrentUser()).thenReturn(homeOwnerUser);
+        when(currentUserResolver.getCurrentVerifiedUser()).thenReturn(homeOwnerUser);
 
         var result = requestService.changeStatus(500L, new RequestStatusChangeRequest(RequestStatus.ACCEPTED, null));
         assertEquals(RequestStatus.ACCEPTED, result.status());
@@ -200,6 +207,7 @@ class RequestServiceTest {
         request.setPledgedBy(donorUser);
         when(requestRepository.findById(500L)).thenReturn(Optional.of(request));
         when(currentUserResolver.getCurrentUser()).thenReturn(homeOwnerUser);
+        when(currentUserResolver.getCurrentVerifiedUser()).thenReturn(homeOwnerUser);
 
         assertThrows(ApiException.class, () ->
                 requestService.changeStatus(500L, new RequestStatusChangeRequest(RequestStatus.CANCELLED, "changed my mind")));
@@ -211,6 +219,7 @@ class RequestServiceTest {
         request.setPledgedBy(donorUser);
         when(requestRepository.findById(500L)).thenReturn(Optional.of(request));
         when(currentUserResolver.getCurrentUser()).thenReturn(adminUser);
+        when(currentUserResolver.getCurrentVerifiedUser()).thenReturn(adminUser);
 
         var result = requestService.changeStatus(500L, new RequestStatusChangeRequest(RequestStatus.CANCELLED, "dispute resolved in favor of cancellation"));
         assertEquals(RequestStatus.CANCELLED, result.status());
@@ -222,6 +231,7 @@ class RequestServiceTest {
         request.setPledgedBy(donorUser);
         when(requestRepository.findById(500L)).thenReturn(Optional.of(request));
         when(currentUserResolver.getCurrentUser()).thenReturn(donorUser);
+        when(currentUserResolver.getCurrentVerifiedUser()).thenReturn(donorUser);
 
         var result = requestService.changeStatus(500L, new RequestStatusChangeRequest(RequestStatus.DELIVERED, null));
         assertEquals(RequestStatus.DELIVERED, result.status());
@@ -233,6 +243,7 @@ class RequestServiceTest {
         request.setPledgedBy(donorUser);
         when(requestRepository.findById(500L)).thenReturn(Optional.of(request));
         when(currentUserResolver.getCurrentUser()).thenReturn(donorUser);
+        when(currentUserResolver.getCurrentVerifiedUser()).thenReturn(donorUser);
 
         assertThrows(ApiException.class, () ->
                 requestService.changeStatus(500L, new RequestStatusChangeRequest(RequestStatus.COMPLETED, null)));

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { registerServiceProvider, getMyServiceProvider, resubmitServiceProvider } from '../services/serviceProviderService';
 import StatusBadge from '../components/StatusBadge.jsx';
 import DocumentUploadWidget from '../components/DocumentUploadWidget.jsx';
+import { useAuth } from '../hooks/useAuth';
 
 const CATEGORY_OPTIONS = ['TUITION', 'COUNSELLING', 'HEALTHCARE', 'SPORTS_COACHING', 'MAINTENANCE', 'OTHER'];
 const PROVIDER_DOCUMENT_TYPES = ['QUALIFICATION_CERTIFICATE', 'POLICE_CLEARANCE_REPORT', 'IDENTITY_DOCUMENT', 'ADDITIONAL_PROOF'];
@@ -32,6 +33,7 @@ function CategoryFieldset({ form, toggleCategory }) {
 }
 
 export default function ServiceProviderRegisterPage() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(true);
@@ -237,7 +239,13 @@ export default function ServiceProviderRegisterPage() {
 
         {error && <p className="form-error">{error}</p>}
 
-        <button type="submit" disabled={submitting}>
+        {!user?.emailVerified && (
+          <p className="form-error">
+            Verify your email address before registering as a provider — use the "Resend email" button in the banner above.
+          </p>
+        )}
+
+        <button type="submit" disabled={submitting || !user?.emailVerified}>
           {submitting ? 'Submitting…' : 'Submit for Verification'}
         </button>
       </form>

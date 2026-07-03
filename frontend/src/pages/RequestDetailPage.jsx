@@ -254,17 +254,26 @@ export default function RequestDetailPage() {
 
         {actions.length > 0 && (
           <div className="verification-actions" style={{ marginTop: '0.5rem' }}>
-            {actions.map((a) => (
-              <button
-                key={a.status}
-                className={a.danger ? 'btn-danger' : ''}
-                disabled={actionLoading}
-                onClick={() => handleAction(a)}
-              >
-                {a.label}
-              </button>
-            ))}
+            {actions.map((a) => {
+              const needsVerification = a.status === 'PLEDGED' && !user?.emailVerified;
+              return (
+                <button
+                  key={a.status}
+                  className={a.danger ? 'btn-danger' : ''}
+                  disabled={actionLoading || needsVerification}
+                  title={needsVerification ? 'Verify your email address first — see the banner above' : undefined}
+                  onClick={() => handleAction(a)}
+                >
+                  {a.label}
+                </button>
+              );
+            })}
           </div>
+        )}
+        {actions.some((a) => a.status === 'PLEDGED') && !user?.emailVerified && (
+          <p className="form-error" style={{ marginTop: '0.5rem' }}>
+            Verify your email address before pledging — use the "Resend email" button in the banner above.
+          </p>
         )}
 
         {pendingDeliveryAction && (

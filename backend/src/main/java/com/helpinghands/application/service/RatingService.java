@@ -37,7 +37,7 @@ public class RatingService {
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ApiException("Request not found", HttpStatus.NOT_FOUND));
 
-        User currentUser = currentUserResolver.getCurrentUser();
+        User currentUser = currentUserResolver.getCurrentVerifiedUser();
         if (!request.getChildrensHome().getUser().getId().equals(currentUser.getId())) {
             throw new ApiException("Only the requesting home can rate this request", HttpStatus.FORBIDDEN);
         }

@@ -556,3 +556,34 @@ Run the new migration on Neon:
 -- database/011_schema_resubmission.sql
 ```
 No new environment variables are needed.
+
+## Email Verification — Now a Hard Gate
+
+Previously, email verification was purely a nag banner — every feature worked
+regardless of verification status. That's changed: verification is now
+**required** before these specific actions:
+
+| Action | Who |
+|---|---|
+| Registering a Children's Home profile | Children's Home |
+| Resubmitting a rejected Home profile | Children's Home |
+| Registering a Service Provider profile | Service Provider |
+| Resubmitting a rejected Provider profile | Service Provider |
+| Creating a request | Children's Home |
+| Any request status change (pledge, accept, progress, deliver, complete, cancel) | Whoever's acting |
+| Submitting a rating | Children's Home |
+
+**Deliberately NOT gated**: logging in, browsing/searching requests, viewing
+your own profile, uploading documents to an already-existing profile. The
+idea is a user can always get in and look around — verification is required
+only at the point of *committing* to something (creating, pledging, rating).
+
+Enforced via `CurrentUserResolver.getCurrentVerifiedUser()`, a drop-in
+replacement for `getCurrentUser()` that throws a 403 with a clear,
+actionable message if the account isn't verified yet. The frontend also
+proactively disables the relevant buttons (Create Request, Submit for
+Verification, Pledge to Fulfil) and shows an inline explanation, rather than
+letting the user click through to a surprise error.
+
+Administrators are unaffected — they're provisioned with `emailVerified =
+true` from the start, since they never go through self-registration.

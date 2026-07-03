@@ -35,7 +35,7 @@ public class RequestService {
 
     @Transactional
     public RequestResponse create(CreateRequestRequest req) {
-        User user = currentUserResolver.getCurrentUser();
+        User user = currentUserResolver.getCurrentVerifiedUser();
         ChildrensHome home = childrensHomeRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ApiException("No Children's Home profile found for this account", HttpStatus.NOT_FOUND));
 
@@ -156,7 +156,7 @@ public class RequestService {
     @Transactional
     public RequestResponse changeStatus(Long id, RequestStatusChangeRequest change) {
         Request request = findOrThrow(id);
-        User user = currentUserResolver.getCurrentUser();
+        User user = currentUserResolver.getCurrentVerifiedUser();
         RequestStatus from = request.getStatus();
         RequestStatus to = change.status();
 

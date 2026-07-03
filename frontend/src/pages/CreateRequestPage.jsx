@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createRequest } from '../services/requestService';
+import { useAuth } from '../hooks/useAuth';
 
 const GOODS_CATEGORIES = ['FOOD', 'BOOKS', 'CLOTHING', 'MEDICAL_SUPPLIES', 'EDUCATIONAL_MATERIALS', 'OTHER_GOODS'];
 const SERVICE_CATEGORIES = ['TUITION', 'COUNSELLING', 'HEALTHCARE', 'SPORTS_COACHING', 'MAINTENANCE', 'OTHER'];
@@ -17,6 +18,7 @@ const initialForm = {
 };
 
 export default function CreateRequestPage() {
+  const { user } = useAuth();
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -105,7 +107,13 @@ export default function CreateRequestPage() {
 
         {error && <p className="form-error">{error}</p>}
 
-        <button type="submit" disabled={submitting}>
+        {!user?.emailVerified && (
+          <p className="form-error">
+            Verify your email address before creating a request — use the "Resend email" button in the banner above.
+          </p>
+        )}
+
+        <button type="submit" disabled={submitting || !user?.emailVerified}>
           {submitting ? 'Creating…' : 'Create Request'}
         </button>
       </form>

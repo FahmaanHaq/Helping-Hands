@@ -33,7 +33,7 @@ public class ServiceProviderService {
 
     @Transactional
     public ServiceProviderResponse register(ServiceProviderRegistrationRequest request) {
-        User user = currentUserResolver.getCurrentUser();
+        User user = currentUserResolver.getCurrentVerifiedUser();
 
         if (serviceProviderRepository.existsByUserId(user.getId())) {
             throw new ApiException("A Service Provider profile already exists for this account", HttpStatus.CONFLICT);
@@ -126,7 +126,7 @@ public class ServiceProviderService {
      */
     @Transactional
     public ServiceProviderResponse resubmit(ServiceProviderRegistrationRequest request) {
-        User user = currentUserResolver.getCurrentUser();
+        User user = currentUserResolver.getCurrentVerifiedUser();
         ServiceProvider provider = serviceProviderRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ApiException("No Service Provider profile found for this account", HttpStatus.NOT_FOUND));
 

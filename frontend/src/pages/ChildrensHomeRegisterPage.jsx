@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { registerChildrensHome, getMyChildrensHome, resubmitChildrensHome } from '../services/childrensHomeService';
 import StatusBadge from '../components/StatusBadge.jsx';
 import DocumentUploadWidget from '../components/DocumentUploadWidget.jsx';
+import { useAuth } from '../hooks/useAuth';
 
 const HOME_DOCUMENT_TYPES = ['GOVERNMENT_REGISTRATION_CERTIFICATE', 'NCPA_DOCUMENT', 'ADDITIONAL_PROOF'];
 
@@ -15,6 +16,7 @@ const initialForm = {
 };
 
 export default function ChildrensHomeRegisterPage() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(true);
@@ -210,7 +212,13 @@ export default function ChildrensHomeRegisterPage() {
 
         {error && <p className="form-error">{error}</p>}
 
-        <button type="submit" disabled={submitting}>
+        {!user?.emailVerified && (
+          <p className="form-error">
+            Verify your email address before registering your home — use the "Resend email" button in the banner above.
+          </p>
+        )}
+
+        <button type="submit" disabled={submitting || !user?.emailVerified}>
           {submitting ? 'Submitting…' : 'Submit for Verification'}
         </button>
       </form>
