@@ -48,14 +48,26 @@ public class RequestMessageService {
         message.setContent(content);
         RequestMessage saved = requestMessageRepository.save(message);
 
-        User recipient = sender.getId().equals(request.getChildrensHome().getUser().getId())
-                ? request.getPledgedBy()
-                : request.getChildrensHome().getUser();
+        User homeUser = request.getChildrensHome().getUser();
+        User pledgedUser = request.getPledgedBy();
+        boolean senderIsHome = sender.getId().equals(homeUser.getId());
+        boolean senderIsPledgedUser = pledgedUser != null && sender.getId().equals(pledgedUser.getId());
 
-        if (recipient != null) {
-            notificationService.notify(recipient, NotificationType.MESSAGE_RECEIVED,
-                    "New Message", sender.getUsername() + " sent a message about \"" + request.getTitle() + "\".",
-                    "/requests/" + requestId);
+        String notificationText = sender.getUsername() + " sent a message about \"" + request.getTitle() + "\".";
+        String link = "/requests/" + requestId;
+
+        if (senderIsHome && pledgedUser != null) {
+            notificationService.notify(pledgedUser, NotificationType.MESSAGE_RECEIVED, "New Message", notificationText, link);
+        } else if (senderIsPledgedUser) {
+            notificationService.notify(homeUser, NotificationType.MESSAGE_RECEIVED, "New Message", notificationText, link);
+        } else {
+            // Sender is neither party — an Administrator intervening in the
+            // conversation. Notify both sides rather than defaulting to one,
+            // since there's no "other party" to infer from the sender here.
+            notificationService.notify(homeUser, NotificationType.MESSAGE_RECEIVED, "New Message", notificationText, link);
+            if (pledgedUser != null) {
+                notificationService.notify(pledgedUser, NotificationType.MESSAGE_RECEIVED, "New Message", notificationText, link);
+            }
         }
 
         return toResponse(saved);

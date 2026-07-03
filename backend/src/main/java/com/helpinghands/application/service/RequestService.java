@@ -156,9 +156,18 @@ public class RequestService {
     @Transactional
     public RequestResponse changeStatus(Long id, RequestStatusChangeRequest change) {
         Request request = findOrThrow(id);
-        User user = currentUserResolver.getCurrentVerifiedUser();
         RequestStatus from = request.getStatus();
         RequestStatus to = change.status();
+
+        // Verification is only required at the point of a *new* commitment
+        // (pledging). Once a request is already past that point, requiring
+        // it again for every downstream step (accept, progress, deliver,
+        // complete, cancel) would strand any account that predates this
+        // gate and never verified — a real risk for existing data, not just
+        // a theoretical one.
+        User user = to == RequestStatus.PLEDGED
+                ? currentUserResolver.getCurrentVerifiedUser()
+                : currentUserResolver.getCurrentUser();
 
         assertLegalTransition(from, to, isAdmin(user));
         assertAuthorizedForTransition(request, user, from, to);
