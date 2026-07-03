@@ -1242,7 +1242,7 @@ body {
 /* Shared width container — every section below the nav aligns to this,
    which is the fix for the hero floating left with a dead zone beside it. */
 .public-container {
-  max-width: 1120px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 2rem;
 }
