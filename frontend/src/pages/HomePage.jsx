@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Package, HeartHandshake, Truck, FilePlus, Search, Handshake, CheckCircle2, LogIn,
-  ShieldCheck, Eye, Users, TrendingUp, Gift, ArrowRight
+  ShieldCheck, Eye, Users, TrendingUp, Gift, ArrowRight, Home as HomeIcon
 } from 'lucide-react';
 import Logomark from '../components/Logomark.jsx';
 import HeroNetwork from '../components/HeroNetwork.jsx';
 import FloatingGifts from '../components/FloatingGifts.jsx';
-import { getFeaturedRequests } from '../services/publicService';
+import { getFeaturedRequests, getImpactStats } from '../services/publicService';
 
 const HOW_IT_WORKS = [
   { icon: FilePlus, title: 'Post Request', text: "Children's homes post their needs for goods or services" },
@@ -15,6 +15,57 @@ const HOW_IT_WORKS = [
   { icon: Handshake, title: 'Coordinate', text: 'Delivery volunteers pick up and transport donations' },
   { icon: CheckCircle2, title: 'Complete', text: 'Delivery confirmed and feedback provided' }
 ];
+
+/**
+ * Rounds DOWN to a tidy display threshold (5+, 10+, 100+, 1k+) rather than
+ * showing a raw count — professional and never overstates, since flooring
+ * can only ever understate reality, never inflate it. Small numbers (<5)
+ * are shown exactly rather than rounded, since "0+" or "2+" would look odd
+ * and there's nothing to round meaningfully yet.
+ */
+function formatImpactCount(count) {
+  if (count < 5) return String(count);
+  if (count < 100) return `${Math.floor(count / 5) * 5}+`;
+  if (count < 1000) return `${Math.floor(count / 100) * 100}+`;
+  return `${Math.floor(count / 1000)}k+`;
+}
+
+const IMPACT_STAT_CONFIG = [
+  { key: 'donors', label: 'Donors', icon: Users },
+  { key: 'deliveryVolunteers', label: 'Delivery Volunteers', icon: Truck },
+  { key: 'verifiedHomes', label: 'Verified Homes', icon: HomeIcon },
+  { key: 'completedRequests', label: 'Requests Fulfilled', icon: CheckCircle2 }
+];
+
+function ImpactStatsSection() {
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    getImpactStats().then(setStats).catch(() => setStats(null));
+  }, []);
+
+  if (!stats) return null;
+
+  // If the platform is brand new (nothing fulfilled yet), a stats bar of
+  // zeros undercuts trust rather than building it — better to say nothing
+  // than to visibly show "0 Requests Fulfilled" on a trust-focused section.
+  const total = Object.values(stats).reduce((sum, v) => sum + v, 0);
+  if (total === 0) return null;
+
+  return (
+    <section className="impact-stats-section">
+      <div className="public-container impact-stats-grid">
+        {IMPACT_STAT_CONFIG.map(({ key, label, icon: Icon }) => (
+          <div key={key} className="impact-stat">
+            <div className="impact-stat-icon"><Icon size={20} /></div>
+            <div className="impact-stat-value">{formatImpactCount(stats[key])}</div>
+            <div className="impact-stat-label">{label}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 const WHY_US = [
   {
@@ -102,6 +153,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <ImpactStatsSection />
 
       <section className="public-section">
         <div className="public-container">

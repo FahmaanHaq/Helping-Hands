@@ -1913,3 +1913,60 @@ body {
 }
 
 .messages-compose button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---- Homepage impact stats — a professional trust bar, not a dashboard chart ---- */
+
+.impact-stats-section {
+  position: relative;
+  z-index: 3;
+  margin-top: -2.5rem;
+  padding-bottom: 1rem;
+}
+
+.impact-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px;
+  background: var(--hh-border);
+  border: 1px solid var(--hh-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(22, 35, 27, 0.1);
+}
+
+.impact-stat {
+  background: white;
+  padding: 1.5rem 1.25rem;
+  text-align: center;
+}
+
+.impact-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(31, 111, 80, 0.1);
+  color: var(--hh-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.6rem;
+}
+
+.impact-stat-value {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--hh-primary);
+  line-height: 1.1;
+}
+
+.impact-stat-label {
+  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  color: #6b6f68;
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .impact-stats-section { margin-top: 1.5rem; }
+}
