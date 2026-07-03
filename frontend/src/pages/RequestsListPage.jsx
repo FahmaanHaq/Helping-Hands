@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Flag } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { browseRequests, getMyRequests, getMyPledges } from '../services/requestService';
+import { browseRequests, getMyRequests, getMyPledges, getMyClaimedDeliveries } from '../services/requestService';
 import { flagRequest } from '../services/moderationService';
 import RequestStatusBadge from '../components/RequestStatusBadge.jsx';
 import Pagination from '../components/Pagination.jsx';
@@ -56,8 +56,10 @@ export default function RequestsListPage() {
 
   const [mainPage, setMainPage] = useState(null);   // Page<RequestResponse> for the primary list
   const [pledgesPage, setPledgesPage] = useState(null);
+  const [claimedPage, setClaimedPage] = useState(null);
   const [pageNum, setPageNum] = useState(0);
   const [pledgesPageNum, setPledgesPageNum] = useState(0);
+  const [claimedPageNum, setClaimedPageNum] = useState(0);
   const [adminStatus, setAdminStatus] = useState('CREATED');
   const [category, setCategory] = useState('');
   const [urgency, setUrgency] = useState('');
@@ -87,6 +89,10 @@ export default function RequestsListPage() {
         ]);
         setMainPage(openPage);
         setPledgesPage(myPledgesPage);
+
+        if (isDeliveryVolunteer) {
+          setClaimedPage(await getMyClaimedDeliveries(claimedPageNum));
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load requests');
@@ -99,7 +105,7 @@ export default function RequestsListPage() {
   // with a narrower filter could otherwise land past the new last page).
   useEffect(() => { setPageNum(0); }, [adminStatus, category, urgency]);
 
-  useEffect(() => { load(); }, [adminStatus, category, urgency, pageNum, pledgesPageNum]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [adminStatus, category, urgency, pageNum, pledgesPageNum, claimedPageNum]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleToggleFlag = async (request) => {
     try {
@@ -127,6 +133,7 @@ export default function RequestsListPage() {
 
   const requests = mainPage?.content || [];
   const pledges = pledgesPage?.content || [];
+  const claimedDeliveries = claimedPage?.content || [];
 
   return (
     <div className="page page-wide">
@@ -196,6 +203,26 @@ export default function RequestsListPage() {
                 {pledges.map((r) => <RequestRow key={r.id} request={r} isAdmin={false} />)}
               </div>
               <Pagination pageData={pledgesPage} onPageChange={setPledgesPageNum} />
+            </>
+          )}
+        </>
+      )}
+
+      {isDeliveryVolunteer && (
+        <>
+          <h2 style={{ marginTop: '2rem' }}>My Claimed Deliveries</h2>
+          <p className="hint-text">Delivery tasks you've claimed — distinct from requests you personally pledged to.</p>
+          {claimedDeliveries.length === 0 ? (
+            <p className="hint-text">
+              You haven&apos;t claimed any deliveries yet — check{' '}
+              <Link to="/deliveries/available">Available Deliveries</Link> for open tasks.
+            </p>
+          ) : (
+            <>
+              <div className="request-list">
+                {claimedDeliveries.map((r) => <RequestRow key={r.id} request={r} isAdmin={false} />)}
+              </div>
+              <Pagination pageData={claimedPage} onPageChange={setClaimedPageNum} />
             </>
           )}
         </>

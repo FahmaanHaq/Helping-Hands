@@ -752,3 +752,30 @@ tab overwrites the first tab's session too. This is standard behavior for
 virtually all token-based web apps (try two Gmail accounts in two regular
 tabs). To test multiple roles at once, use a regular window for one account
 and an Incognito/Private window for another, or two different browsers.
+
+## Fixed: Delivery Volunteer Dashboard Showing Zeros
+
+Your screenshot showed 3 items in "Available Deliveries" but "0" for both
+Dashboard stats. Both numbers were technically *correct* — just measuring
+the wrong thing for that role:
+- "Open Goods Requests" counts unpledged CREATED requests. All 3 items were
+  already PLEDGED (by a Donor), just needing a volunteer — so correctly 0.
+- "My Pledges" counts requests where *you* are `pledgedBy`. A Delivery
+  Volunteer who has only ever claimed deliveries (not personally pledged
+  goods) will always show 0 here — claiming sets a different field
+  (`deliveryVolunteer`), which nothing was reading anywhere.
+
+This also meant claimed deliveries were invisible everywhere once claimed
+— they'd disappear from "Available Deliveries" (correctly) but never
+appear on the Dashboard, the Requests page, or anywhere else. Fixed with:
+- A new `myClaimedDeliveries` endpoint/query
+- A dedicated **Delivery Volunteer Dashboard** (separate from the Donor
+  one) showing "Available Deliveries" and "My Claimed Deliveries" —
+  the two numbers that actually matter for this role
+- A **"My Claimed Deliveries"** section on the Requests page, alongside
+  "My Pledges"
+
+### Required setup for this batch
+
+No new migration — this reuses the `delivery_volunteer_id` column from the
+previous update.

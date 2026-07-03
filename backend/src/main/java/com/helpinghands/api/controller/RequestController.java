@@ -80,6 +80,14 @@ public class RequestController {
         return ApiResponse.ok("Retrieved", requestService.myPledges(PageRequest.of(page, size)));
     }
 
+    @GetMapping("/my-claimed-deliveries")
+    @PreAuthorize("hasRole('DELIVERY_VOLUNTEER')")
+    public ApiResponse<Page<RequestResponse>> myClaimedDeliveries(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.ok("Retrieved", requestService.myClaimedDeliveries(PageRequest.of(page, size)));
+    }
+
     /**
      * Answers the SRS's "Auto-match items to requests" use case — a small,
      * personalized set of open requests ranked by the caller's past pledge

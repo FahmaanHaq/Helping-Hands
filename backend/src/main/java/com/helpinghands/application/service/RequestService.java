@@ -140,6 +140,18 @@ public class RequestService {
         return requestRepository.findByPledgedById(user.getId(), pageable).map(this::toResponse);
     }
 
+    /**
+     * The list a Delivery Volunteer needed and didn't have: everything they
+     * claimed via claimDelivery() is invisible everywhere else, since
+     * claiming sets deliveryVolunteer, not pledgedBy — myPledges() alone
+     * would never show it.
+     */
+    @Transactional(readOnly = true)
+    public Page<RequestResponse> myClaimedDeliveries(Pageable pageable) {
+        User user = currentUserResolver.getCurrentUser();
+        return requestRepository.findByDeliveryVolunteerId(user.getId(), pageable).map(this::toResponse);
+    }
+
     @Transactional(readOnly = true)
     public List<RequestHistoryResponse> history(Long id) {
         findOrThrow(id); // 404 if the request itself doesn't exist

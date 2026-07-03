@@ -13,7 +13,7 @@ import HeroNetwork from '../components/HeroNetwork.jsx';
 import { getVerificationStats } from '../services/dashboardService';
 import { getMyChildrensHome } from '../services/childrensHomeService';
 import { getMyServiceProvider } from '../services/serviceProviderService';
-import { getMyRequests, browseRequests, getMyPledges, getRecommendedRequests } from '../services/requestService';
+import { getMyRequests, browseRequests, getMyPledges, getRecommendedRequests, getAvailableDeliveries, getMyClaimedDeliveries } from '../services/requestService';
 import { listDocuments } from '../services/documentService';
 
 function DashboardTile({ to, icon: Icon, children }) {
@@ -240,7 +240,6 @@ function RecommendedRequests() {
 }
 
 function DonorDashboard() {
-  const { hasRole } = useAuth();
   const [openCount, setOpenCount] = useState(null);
   const [pledges, setPledges] = useState([]);
 
@@ -257,12 +256,11 @@ function DonorDashboard() {
   }, []);
 
   const breakdown = summarizeRequestStatuses(pledges);
-  const roleIcon = hasRole('DELIVERY_VOLUNTEER') ? Truck : Package;
 
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Open Goods Requests" value={openCount ?? '—'} accent="amber" icon={roleIcon} />
+        <StatCard label="Open Goods Requests" value={openCount ?? '—'} accent="amber" icon={Package} />
         <StatCard label="My Pledges" value={pledges.length} accent="green" icon={HeartHandshake} />
       </div>
 
@@ -271,6 +269,51 @@ function DonorDashboard() {
       )}
 
       <div className="dashboard-actions">
+        <DashboardTile to="/requests" icon={PackageSearch}>Browse Donation Requests</DashboardTile>
+      </div>
+      <RecommendedRequests />
+    </>
+  );
+}
+
+/**
+ * Distinct from DonorDashboard: a Delivery Volunteer's meaningful numbers
+ * are "how many deliveries need someone" and "how many have I claimed" —
+ * not "open goods requests" (those are already pledged by the time a
+ * volunteer pickup is needed) or "my pledges" (claiming sets a different
+ * field, deliveryVolunteer, not pledgedBy — myPledges would always show 0
+ * for a volunteer who has only ever claimed deliveries, never pledged
+ * goods directly).
+ */
+function DeliveryVolunteerDashboard() {
+  const [availableCount, setAvailableCount] = useState(null);
+  const [claimed, setClaimed] = useState([]);
+
+  useEffect(() => {
+    Promise.all([
+      getAvailableDeliveries(0).catch(() => ({ content: [], totalElements: 0 })),
+      getMyClaimedDeliveries(0).catch(() => ({ content: [] }))
+    ]).then(([availablePage, claimedPage]) => {
+      setAvailableCount(availablePage.totalElements ?? (availablePage.content || []).length);
+      setClaimed(claimedPage.content || []);
+    });
+  }, []);
+
+  const breakdown = summarizeRequestStatuses(claimed);
+
+  return (
+    <>
+      <div className="stat-grid">
+        <StatCard label="Available Deliveries" value={availableCount ?? '—'} accent="amber" icon={Truck} />
+        <StatCard label="My Claimed Deliveries" value={claimed.length} accent="green" icon={HeartHandshake} />
+      </div>
+
+      {claimed.length > 0 && (
+        <RequestBreakdownChart data={breakdown} title="Your Claimed Deliveries by Status" centerLabel="Deliveries" />
+      )}
+
+      <div className="dashboard-actions">
+        <DashboardTile to="/deliveries/available" icon={Truck}>Browse Available Deliveries</DashboardTile>
         <DashboardTile to="/requests" icon={PackageSearch}>Browse Donation Requests</DashboardTile>
       </div>
       <RecommendedRequests />
@@ -292,7 +335,8 @@ export default function DashboardPage() {
       {hasRole('ADMINISTRATOR') && <AdminDashboard />}
       {hasRole('CHILDRENS_HOME') && <ChildrensHomeDashboard />}
       {hasRole('SERVICE_PROVIDER') && <ServiceProviderDashboard />}
-      {(hasRole('DONOR') || hasRole('DELIVERY_VOLUNTEER')) && <DonorDashboard />}
+      {hasRole('DONOR') && <DonorDashboard />}
+      {hasRole('DELIVERY_VOLUNTEER') && <DeliveryVolunteerDashboard />}
     </div>
   );
 }
