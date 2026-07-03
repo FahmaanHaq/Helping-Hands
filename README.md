@@ -587,3 +587,74 @@ letting the user click through to a surprise error.
 
 Administrators are unaffected — they're provisioned with `emailVerified =
 true` from the start, since they never go through self-registration.
+
+## Third email option: SendGrid (no domain needed)
+
+Resend's free sender (`onboarding@resend.dev`) has a real limitation: it
+**only delivers to the email address that owns your Resend account** —
+every other recipient gets rejected with a 403
+(`"You can only send testing emails to your own email address..."`). The
+proper fix is verifying a domain at resend.com/domains, but that requires
+owning a domain and configuring DNS.
+
+If you don't have a domain yet, **SendGrid** is a genuine alternative, not
+just a smaller version of the same limitation: its **Single Sender
+Verification** lets you verify one email address you already own (click a
+confirmation link — no DNS involved), and that address can then send to
+*any* recipient.
+
+### Setup
+
+1. Sign up at sendgrid.com (free tier)
+2. **Settings → Sender Authentication → Verify a Single Sender** — enter an
+   email you own (e.g. your Gmail), click the confirmation link they send you
+3. **Settings → API Keys** → create a key with "Mail Send" permission
+4. On Render, set:
+   ```
+   EMAIL_PROVIDER=sendgrid
+   SENDGRID_API_KEY=SG.your_actual_key
+   SENDGRID_FROM_ADDRESS=the-address-you-just-verified@gmail.com
+   SENDGRID_FROM_NAME=Helping Hands
+   ```
+
+Implemented as `SendGridEmailService`, following the exact same pattern as
+`ResendEmailService`/`SmtpEmailService` — all three implement `EmailService`
+and are mutually exclusive via `@ConditionalOnProperty` on
+`app.email-provider`, so exactly one is ever active.
+
+**Honest tradeoff**: sending from a personal address (rather than
+`noreply@yourdomain.com`) looks less professional and is somewhat more
+likely to be flagged as spam by some providers. Fine for testing/demo;
+verify a real domain with Resend (or SendGrid) once you have one.
+
+## Fourth email option: Brevo (if SendGrid signup itself is the blocker)
+
+SendGrid has been rejecting or flagging some new account signups lately —
+that's an account-creation problem on their end, not something wrong with
+the `SendGridEmailService` integration in this codebase. If you hit that,
+**Brevo** (formerly Sendinblue) offers the same underlying model — verify
+one email address you own, no domain/DNS needed, send to any recipient —
+generally with a smoother signup process.
+
+### Setup
+
+1. Sign up at brevo.com (free tier — 300 emails/day)
+2. **Senders, Domains & Dedicated IPs → Senders → Add a Sender** → enter an
+   email you own, click the confirmation link they send you
+3. **SMTP & API → API Keys** → generate a new key
+4. On Render, set:
+   ```
+   EMAIL_PROVIDER=brevo
+   BREVO_API_KEY=xkeysib-your_actual_key
+   BREVO_FROM_ADDRESS=the-address-you-just-verified@gmail.com
+   BREVO_FROM_NAME=Helping Hands
+   ```
+
+Implemented as `BrevoEmailService`, following the identical pattern as the
+other three `EmailService` implementations — all four (`resend`, `sendgrid`,
+`brevo`, `smtp`) are mutually exclusive via `@ConditionalOnProperty`, so
+exactly one is ever active regardless of which you choose.
+
+**If none of Resend/SendGrid/Brevo work out**, Mailgun and Postmark follow
+the same single-sender-or-domain pattern and could be added the same way —
+just say the word.

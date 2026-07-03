@@ -57,10 +57,18 @@ spring:
 mail:
   from-address: ${MAIL_FROM_ADDRESS:no-reply@helpinghands.local}
 
-# Which EmailService bean is active — see ResendEmailService's class comment
-# for why "resend" (an HTTPS API, not SMTP) is the default. Set to "smtp"
-# only for self-hosted/VPS deployments (docker-compose) where outbound SMTP
-# isn't blocked at the network level, and where MAIL_* below actually apply.
+# Which EmailService bean is active:
+#   "resend"   (default) — HTTPS API. Simple, but the free onboarding@resend.dev
+#              sender can only email your OWN account address until you verify
+#              a domain (resend.com/domains).
+#   "sendgrid" — HTTPS API. Use this if you don't have a domain to verify —
+#              SendGrid's Single Sender Verification (one email address, no
+#              DNS) lets you email any recipient.
+#   "brevo"    — HTTPS API. Same single-sender model as SendGrid; use this if
+#              SendGrid's signup process itself is the blocker.
+#   "smtp"     — only for self-hosted/VPS deployments (docker-compose) where
+#              outbound SMTP isn't blocked at the network level, and where
+#              MAIL_* below actually apply. Blocked on Render/most PaaS hosts.
 app:
   email-provider: ${EMAIL_PROVIDER:resend}
   # Used to build email verification / password reset links. Must be the
@@ -70,10 +78,30 @@ app:
 
 resend:
   api-key: ${RESEND_API_KEY:}
-  # onboarding@resend.dev works immediately with no domain verification —
-  # fine for a demo. Delivers to any recipient, but looks less polished
-  # than a real domain; switch once you verify your own domain in Resend.
+  # IMPORTANT: onboarding@resend.dev only delivers to the email address that
+  # owns your Resend account — every other recipient gets rejected with a
+  # 403 ("verify a domain to send to other recipients"). Verify a real
+  # domain at resend.com/domains and point this at an address on it once
+  # you need to email real users. Until then, use app.email-provider=sendgrid
+  # instead (below) — it supports single-address verification, no domain needed.
   from-address: ${RESEND_FROM_ADDRESS:Helping Hands <onboarding@resend.dev>}
+
+sendgrid:
+  api-key: ${SENDGRID_API_KEY:}
+  # Must be an address verified via SendGrid's "Single Sender Verification"
+  # (Settings → Sender Authentication) — a one-time click-a-confirmation-link
+  # step, no domain/DNS required. Unlike Resend's sandbox sender, a verified
+  # single sender can email any recipient, not just your own inbox.
+  from-address: ${SENDGRID_FROM_ADDRESS:}
+  from-name: ${SENDGRID_FROM_NAME:Helping Hands}
+
+brevo:
+  api-key: ${BREVO_API_KEY:}
+  # Same single-sender-verification model as SendGrid (Brevo dashboard ->
+  # Senders, Domains & Dedicated IPs -> Senders), an alternative if
+  # SendGrid's signup process itself is the blocker.
+  from-address: ${BREVO_FROM_ADDRESS:}
+  from-name: ${BREVO_FROM_NAME:Helping Hands}
 
 storage:
   local:
