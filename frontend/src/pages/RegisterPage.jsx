@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { LogIn } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import Logomark from '../components/Logomark.jsx';
 import HeroNetwork from '../components/HeroNetwork.jsx';
@@ -129,9 +130,15 @@ export default function RegisterPage() {
           {loading ? 'Creating account…' : 'Register'}
         </button>
 
-        <p>
-          Already have an account? <Link to="/login">Sign in</Link>
-        </p>
+        <div className="auth-secondary-links">
+          <Link to="/login" className="auth-action-link">
+            <span className="auth-action-link-icon"><LogIn size={15} /></span>
+            <span className="auth-action-link-text">
+              Already have an account?
+              <small>Sign in instead</small>
+            </span>
+          </Link>
+        </div>
       </form>
     </div>
   );

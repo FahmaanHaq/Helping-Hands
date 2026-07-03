@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { LogIn } from 'lucide-react';
 import { forgotPassword } from '../services/authService';
 import Logomark from '../components/Logomark.jsx';
 import HeroNetwork from '../components/HeroNetwork.jsx';
@@ -51,7 +52,15 @@ export default function ForgotPasswordPage() {
           {submitting ? 'Sending…' : 'Send Reset Link'}
         </button>
 
-        <p><Link to="/login">Back to login</Link></p>
+        <div className="auth-secondary-links">
+          <Link to="/login" className="auth-action-link">
+            <span className="auth-action-link-icon"><LogIn size={15} /></span>
+            <span className="auth-action-link-text">
+              Remembered it?
+              <small>Back to login</small>
+            </span>
+          </Link>
+        </div>
       </form>
     </div>
   );

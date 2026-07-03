@@ -2,17 +2,29 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ClipboardList, CheckCircle2, XCircle, Users, Home as HomeIcon,
-  FileText, ShieldCheck, Package, HeartHandshake, Truck
+  FileText, ShieldCheck, Package, HeartHandshake, Truck,
+  ArrowRight, PackageSearch, ListChecks, PlusCircle, UserCog, Flag, BarChart3
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import StatCard from '../components/StatCard.jsx';
 import VerificationStatusChart from '../components/VerificationStatusChart.jsx';
 import RequestBreakdownChart from '../components/RequestBreakdownChart.jsx';
+import HeroNetwork from '../components/HeroNetwork.jsx';
 import { getVerificationStats } from '../services/dashboardService';
 import { getMyChildrensHome } from '../services/childrensHomeService';
 import { getMyServiceProvider } from '../services/serviceProviderService';
 import { getMyRequests, browseRequests, getMyPledges, getRecommendedRequests } from '../services/requestService';
 import { listDocuments } from '../services/documentService';
+
+function DashboardTile({ to, icon: Icon, children }) {
+  return (
+    <Link className="dashboard-tile" to={to}>
+      <span className="dashboard-tile-icon"><Icon size={18} /></span>
+      <span style={{ flex: 1 }}>{children}</span>
+      <ArrowRight size={16} style={{ opacity: 0.4 }} />
+    </Link>
+  );
+}
 
 function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -52,8 +64,11 @@ function AdminDashboard() {
       </div>
 
       <div className="dashboard-actions">
-        <Link className="dashboard-tile" to="/admin/verification">Go to Verification Queue →</Link>
-        <Link className="dashboard-tile" to="/requests">View All Requests →</Link>
+        <DashboardTile to="/admin/verification" icon={ShieldCheck}>Go to Verification Queue</DashboardTile>
+        <DashboardTile to="/requests" icon={PackageSearch}>View All Requests</DashboardTile>
+        <DashboardTile to="/admin/users" icon={UserCog}>Manage Users</DashboardTile>
+        <DashboardTile to="/admin/flagged" icon={Flag}>Flagged Content</DashboardTile>
+        <DashboardTile to="/admin/reports" icon={BarChart3}>View Reports</DashboardTile>
       </div>
     </>
   );
@@ -122,11 +137,12 @@ function ChildrensHomeDashboard() {
       )}
 
       <div className="dashboard-actions">
-        <Link className="dashboard-tile" to="/childrens-home">View Profile & Documents →</Link>
+        <DashboardTile to="/childrens-home" icon={HomeIcon}>View Profile & Documents</DashboardTile>
         {profile.verificationStatus === 'APPROVED' && (
-          <Link className="dashboard-tile" to="/requests/new">Create a New Request →</Link>
+          <DashboardTile to="/requests/new" icon={PlusCircle}>Create a New Request</DashboardTile>
         )}
-        <Link className="dashboard-tile" to="/requests">View My Requests →</Link>
+        <DashboardTile to="/requests" icon={ListChecks}>View My Requests</DashboardTile>
+        <DashboardTile to="/directory/donors" icon={Users}>Browse Donors</DashboardTile>
       </div>
     </>
   );
@@ -186,8 +202,8 @@ function ServiceProviderDashboard() {
       )}
 
       <div className="dashboard-actions">
-        <Link className="dashboard-tile" to="/service-provider">View Profile & Documents →</Link>
-        <Link className="dashboard-tile" to="/requests">Browse Service Requests →</Link>
+        <DashboardTile to="/service-provider" icon={ShieldCheck}>View Profile & Documents</DashboardTile>
+        <DashboardTile to="/requests" icon={PackageSearch}>Browse Service Requests</DashboardTile>
       </div>
       <RecommendedRequests />
     </>
@@ -255,7 +271,7 @@ function DonorDashboard() {
       )}
 
       <div className="dashboard-actions">
-        <Link className="dashboard-tile" to="/requests">Browse Donation Requests →</Link>
+        <DashboardTile to="/requests" icon={PackageSearch}>Browse Donation Requests</DashboardTile>
       </div>
       <RecommendedRequests />
     </>
@@ -267,12 +283,11 @@ export default function DashboardPage() {
 
   return (
     <div className="page page-wide">
-      <header className="page-header">
-        <div>
-          <h1>Dashboard</h1>
-          <p className="hint-text">Welcome back, <strong>{user?.username}</strong> · {user?.roles?.join(', ')}</p>
-        </div>
-      </header>
+      <div className="dashboard-banner">
+        <HeroNetwork className="dashboard-banner-network" />
+        <h1>Welcome back, {user?.username}</h1>
+        <p>{user?.roles?.join(', ')}</p>
+      </div>
 
       {hasRole('ADMINISTRATOR') && <AdminDashboard />}
       {hasRole('CHILDRENS_HOME') && <ChildrensHomeDashboard />}

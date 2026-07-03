@@ -1,5 +1,6 @@
 import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart as PieChartIcon } from 'lucide-react';
 
 const COLORS = ['#1f6f50', '#a5720a', '#3a5a8c', '#b3261e', '#6b6f68'];
 
@@ -19,7 +20,10 @@ export default function RequestBreakdownChart({ data, title, centerLabel = 'Tota
     <div className="chart-card">
       <h3>{title}</h3>
       {isEmpty ? (
-        <div className="chart-card-empty">Nothing to show yet</div>
+        <div className="chart-card-empty">
+          <PieChartIcon size={32} />
+          <span>Nothing to show yet</span>
+        </div>
       ) : (
         <>
           <div className="donut-chart-wrapper">

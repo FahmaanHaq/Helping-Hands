@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { KeyRound, UserPlus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { resendMfa } from '../services/authService';
 import Logomark from '../components/Logomark.jsx';
@@ -151,11 +152,22 @@ export default function LoginPage() {
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
 
-        <p><Link to="/forgot-password">Forgot your password?</Link></p>
-
-        <p>
-          No account? <Link to="/register">Register here</Link>
-        </p>
+        <div className="auth-secondary-links">
+          <Link to="/forgot-password" className="auth-action-link">
+            <span className="auth-action-link-icon"><KeyRound size={15} /></span>
+            <span className="auth-action-link-text">
+              Forgot your password?
+              <small>Get a reset link by email</small>
+            </span>
+          </Link>
+          <Link to="/register" className="auth-action-link">
+            <span className="auth-action-link-icon"><UserPlus size={15} /></span>
+            <span className="auth-action-link-text">
+              Create an account
+              <small>New to Helping Hands? Register here</small>
+            </span>
+          </Link>
+        </div>
       </form>
     </div>
   );
