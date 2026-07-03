@@ -473,7 +473,7 @@ export default function RequestDetailPage() {
         />
       )}
 
-      {!['CREATED', 'PLEDGED', 'CANCELLED'].includes(request.status)
+      {!['CREATED', 'PLEDGED'].includes(request.status)
         && (isOwningHome || request.pledgedByUsername === user?.username || isAdmin) && (
         <MessagesPanel requestId={request.id} currentUsername={user?.username} />
       )}
