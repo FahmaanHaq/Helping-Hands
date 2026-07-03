@@ -38,6 +38,7 @@ export default function VerifyEmailPage() {
   return (
     <div className="auth-page">
       <HeroNetwork className="auth-page-network" />
+        <HeroNetwork className="auth-page-network-secondary" />
       <div className="auth-form">
         <div className="auth-form-brand">
           <Logomark size={22} />

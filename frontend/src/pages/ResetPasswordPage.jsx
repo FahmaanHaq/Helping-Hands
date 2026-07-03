@@ -48,6 +48,7 @@ export default function ResetPasswordPage() {
     return (
       <div className="auth-page">
         <HeroNetwork className="auth-page-network" />
+        <HeroNetwork className="auth-page-network-secondary" />
         <div className="auth-form">
           <BrandMark />
           <h1>Invalid link</h1>
@@ -62,6 +63,7 @@ export default function ResetPasswordPage() {
     return (
       <div className="auth-page">
         <HeroNetwork className="auth-page-network" />
+        <HeroNetwork className="auth-page-network-secondary" />
         <div className="auth-form">
           <BrandMark />
           <h1>Password reset</h1>
@@ -74,6 +76,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="auth-page">
       <HeroNetwork className="auth-page-network" />
+        <HeroNetwork className="auth-page-network-secondary" />
       <form onSubmit={handleSubmit} className="auth-form">
         <BrandMark />
         <h1>Choose a new password</h1>

@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  ClipboardList, CheckCircle2, XCircle, Users, Home as HomeIcon,
+  FileText, ShieldCheck, Package, HeartHandshake, Truck
+} from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import StatCard from '../components/StatCard.jsx';
 import VerificationStatusChart from '../components/VerificationStatusChart.jsx';
+import RequestBreakdownChart from '../components/RequestBreakdownChart.jsx';
 import { getVerificationStats } from '../services/dashboardService';
 import { getMyChildrensHome } from '../services/childrensHomeService';
 import { getMyServiceProvider } from '../services/serviceProviderService';
@@ -26,16 +31,25 @@ function AdminDashboard() {
   const totalRejected = stats.homesRejected + stats.providersRejected;
   const totalProfiles = totalPending + totalApproved + totalRejected;
 
+  const outcomeData = [
+    { name: 'Pending', value: totalPending },
+    { name: 'Approved', value: totalApproved },
+    { name: 'Rejected', value: totalRejected }
+  ];
+
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Pending Review" value={totalPending} accent="amber" />
-        <StatCard label="Approved" value={totalApproved} accent="green" />
-        <StatCard label="Rejected" value={totalRejected} accent="red" />
-        <StatCard label="Total Profiles" value={totalProfiles} accent="neutral" />
+        <StatCard label="Pending Review" value={totalPending} accent="amber" icon={ClipboardList} />
+        <StatCard label="Approved" value={totalApproved} accent="green" icon={CheckCircle2} />
+        <StatCard label="Rejected" value={totalRejected} accent="red" icon={XCircle} />
+        <StatCard label="Total Profiles" value={totalProfiles} accent="neutral" icon={Users} />
       </div>
 
-      <VerificationStatusChart stats={stats} />
+      <div className="two-col-charts">
+        <VerificationStatusChart stats={stats} />
+        <RequestBreakdownChart data={outcomeData} title="Profiles by Outcome" centerLabel="Profiles" />
+      </div>
 
       <div className="dashboard-actions">
         <Link className="dashboard-tile" to="/admin/verification">Go to Verification Queue →</Link>
@@ -43,6 +57,18 @@ function AdminDashboard() {
       </div>
     </>
   );
+}
+
+/** Groups the fine-grained request lifecycle into 4 dashboard-friendly buckets. */
+function summarizeRequestStatuses(requests) {
+  const buckets = { Open: 0, 'In Progress': 0, Completed: 0, Cancelled: 0 };
+  for (const r of requests) {
+    if (r.status === 'CREATED' || r.status === 'PLEDGED') buckets.Open++;
+    else if (['ACCEPTED', 'IN_PROGRESS', 'DELIVERED'].includes(r.status)) buckets['In Progress']++;
+    else if (r.status === 'COMPLETED') buckets.Completed++;
+    else if (r.status === 'CANCELLED') buckets.Cancelled++;
+  }
+  return Object.entries(buckets).map(([name, value]) => ({ name, value }));
 }
 
 function ChildrensHomeDashboard() {
@@ -80,15 +106,21 @@ function ChildrensHomeDashboard() {
     : profile.verificationStatus === 'REJECTED' ? 'red' : 'amber';
   const activeCount = requests.filter((r) => !['COMPLETED', 'CANCELLED'].includes(r.status)).length;
   const completedCount = requests.filter((r) => r.status === 'COMPLETED').length;
+  const breakdown = summarizeRequestStatuses(requests);
 
   return (
     <>
       <div className="stat-grid">
-        <StatCard label={profile.homeName} value={profile.verificationStatus} accent={accent} subtitle="Verification status" />
-        <StatCard label="Active Requests" value={activeCount} accent="amber" />
-        <StatCard label="Completed Requests" value={completedCount} accent="green" />
-        <StatCard label="Documents Uploaded" value={docCount ?? '—'} accent="neutral" />
+        <StatCard label={profile.homeName} value={profile.verificationStatus} accent={accent} subtitle="Verification status" icon={HomeIcon} />
+        <StatCard label="Active Requests" value={activeCount} accent="amber" icon={ClipboardList} />
+        <StatCard label="Completed Requests" value={completedCount} accent="green" icon={CheckCircle2} />
+        <StatCard label="Documents Uploaded" value={docCount ?? '—'} accent="neutral" icon={FileText} />
       </div>
+
+      {requests.length > 0 && (
+        <RequestBreakdownChart data={breakdown} title="Your Requests by Status" centerLabel="Requests" />
+      )}
+
       <div className="dashboard-actions">
         <Link className="dashboard-tile" to="/childrens-home">View Profile & Documents →</Link>
         {profile.verificationStatus === 'APPROVED' && (
@@ -103,19 +135,19 @@ function ChildrensHomeDashboard() {
 function ServiceProviderDashboard() {
   const [profile, setProfile] = useState(null);
   const [docCount, setDocCount] = useState(null);
-  const [pledgeCount, setPledgeCount] = useState(null);
+  const [pledges, setPledges] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     getMyServiceProvider()
       .then(async (p) => {
         setProfile(p);
-        const [docs, pledges] = await Promise.all([
+        const [docs, pledgesPage] = await Promise.all([
           listDocuments('SERVICE_PROVIDER', p.id).catch(() => []),
           getMyPledges().catch(() => ({ content: [] }))
         ]);
         setDocCount(docs.length);
-        setPledgeCount((pledges.content || []).length);
+        setPledges(pledgesPage.content || []);
       })
       .catch(() => setProfile(null))
       .finally(() => setLoading(false));
@@ -133,19 +165,26 @@ function ServiceProviderDashboard() {
 
   const accent = profile.verificationStatus === 'APPROVED' ? 'green'
     : profile.verificationStatus === 'REJECTED' ? 'red' : 'amber';
+  const breakdown = summarizeRequestStatuses(pledges);
 
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Verification Status" value={profile.verificationStatus} accent={accent} />
+        <StatCard label="Verification Status" value={profile.verificationStatus} accent={accent} icon={ShieldCheck} />
         <StatCard
           label="Police Clearance"
           value={profile.policeClearanceRequired ? (profile.policeClearanceVerified ? 'Verified' : 'Pending') : 'N/A'}
           accent={profile.policeClearanceRequired ? (profile.policeClearanceVerified ? 'green' : 'amber') : 'neutral'}
+          icon={ShieldCheck}
         />
-        <StatCard label="My Pledges" value={pledgeCount ?? '—'} accent="neutral" />
-        <StatCard label="Documents Uploaded" value={docCount ?? '—'} accent="neutral" />
+        <StatCard label="My Pledges" value={pledges.length} accent="neutral" icon={HeartHandshake} />
+        <StatCard label="Documents Uploaded" value={docCount ?? '—'} accent="neutral" icon={FileText} />
       </div>
+
+      {pledges.length > 0 && (
+        <RequestBreakdownChart data={breakdown} title="Your Pledges by Status" centerLabel="Pledges" />
+      )}
+
       <div className="dashboard-actions">
         <Link className="dashboard-tile" to="/service-provider">View Profile & Documents →</Link>
         <Link className="dashboard-tile" to="/requests">Browse Service Requests →</Link>
@@ -185,27 +224,36 @@ function RecommendedRequests() {
 }
 
 function DonorDashboard() {
+  const { hasRole } = useAuth();
   const [openCount, setOpenCount] = useState(null);
-  const [pledgeCount, setPledgeCount] = useState(null);
+  const [pledges, setPledges] = useState([]);
 
   useEffect(() => {
     Promise.all([
       browseRequests('CREATED', { requestType: 'GOODS' }).catch(() => ({ content: [], totalElements: 0 })),
-      getMyPledges().catch(() => ({ content: [], totalElements: 0 }))
+      getMyPledges().catch(() => ({ content: [] }))
     ]).then(([openPage, pledgesPage]) => {
       // totalElements (not content.length) — content is just the current page,
       // but the count should reflect the true total across all pages.
       setOpenCount(openPage.totalElements ?? (openPage.content || []).length);
-      setPledgeCount(pledgesPage.totalElements ?? (pledgesPage.content || []).length);
+      setPledges(pledgesPage.content || []);
     });
   }, []);
+
+  const breakdown = summarizeRequestStatuses(pledges);
+  const roleIcon = hasRole('DELIVERY_VOLUNTEER') ? Truck : Package;
 
   return (
     <>
       <div className="stat-grid">
-        <StatCard label="Open Goods Requests" value={openCount ?? '—'} accent="amber" />
-        <StatCard label="My Pledges" value={pledgeCount ?? '—'} accent="green" />
+        <StatCard label="Open Goods Requests" value={openCount ?? '—'} accent="amber" icon={roleIcon} />
+        <StatCard label="My Pledges" value={pledges.length} accent="green" icon={HeartHandshake} />
       </div>
+
+      {pledges.length > 0 && (
+        <RequestBreakdownChart data={breakdown} title="Your Pledges by Status" centerLabel="Pledges" />
+      )}
+
       <div className="dashboard-actions">
         <Link className="dashboard-tile" to="/requests">Browse Donation Requests →</Link>
       </div>

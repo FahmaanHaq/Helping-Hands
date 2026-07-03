@@ -59,6 +59,7 @@ export default function LoginPage() {
     return (
       <div className="auth-page">
         <HeroNetwork className="auth-page-network" />
+        <HeroNetwork className="auth-page-network-secondary" />
         <form onSubmit={handleMfaSubmit} className="auth-form">
           <div className="auth-form-brand">
             <Logomark size={22} />
@@ -114,6 +115,7 @@ export default function LoginPage() {
   return (
     <div className="auth-page">
       <HeroNetwork className="auth-page-network" />
+        <HeroNetwork className="auth-page-network-secondary" />
       <form onSubmit={handleSubmit} className="auth-form">
         <div className="auth-form-brand">
           <Logomark size={22} />
